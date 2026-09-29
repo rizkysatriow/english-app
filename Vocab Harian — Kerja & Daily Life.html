@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vocab Harian — Kerja &amp; Daily Life</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#FAF6EE; --ink:#20232A; --card:#FFFFFF; --border:#DED6C3; --muted:#8A8371;
+  --teal:#2F6F6B; --amber:#C98A1B; --green:#2F8F5B; --red:#B3432B;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B1E22; --ink:#ECE7DA; --card:#262A30; --border:#3A3F46; --muted:#9AA0A6;
+    --teal:#4FA69F; --amber:#E0A83D; --green:#4FBE84; --red:#E0665A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B1E22; --ink:#ECE7DA; --card:#262A30; --border:#3A3F46; --muted:#9AA0A6;
+  --teal:#4FA69F; --amber:#E0A83D; --green:#4FBE84; --red:#E0665A;
+}
+*{box-sizing:inherit;}
+html,body{height:100%;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+.wrap{max-width:480px;margin:0 auto;padding:22px 18px 48px;}
+h1{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  font-size:21px;margin:0 0 3px;font-weight:600;}
+.sub{color:var(--muted);font-size:14px;margin:0 0 18px;line-height:1.4;}
+.stat{font-size:13px;color:var(--muted);margin-bottom:6px;}
+.bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:18px;}
+.bar-fill{height:100%;background:var(--amber);}
+.days{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 14px;}
+.day-chip{flex:0 0 auto;width:34px;height:34px;border-radius:8px;font-size:13px;
+  border:1px solid var(--border);background:transparent;color:var(--muted);}
+.day-chip.done{background:var(--teal);color:#fff;border-color:var(--teal);}
+.day-chip.current{border-color:var(--amber);color:var(--ink);font-weight:700;}
+.day-chip.locked{opacity:.35;}
+h2{font-size:15px;margin:6px 0 10px;font-weight:600;}
+.card{perspective:900px;height:142px;margin-bottom:10px;}
+.card-inner{position:relative;width:100%;height:100%;transition:transform .35s;transform-style:preserve-3d;}
+.card.flipped .card-inner{transform:rotateY(180deg);}
+@media (prefers-reduced-motion:reduce){.card-inner{transition:none;}}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--border);
+  border-radius:10px;background:var(--card);padding:14px 16px;display:flex;flex-direction:column;justify-content:center;}
+.card-face strong{font-family:Georgia,serif;font-size:19px;}
+.card-face span{font-size:12.5px;color:var(--muted);margin-top:4px;}
+.card-back{transform:rotateY(180deg);}
+.card-back strong{color:var(--teal);}
+.card-back span.ex{color:var(--ink);font-size:13.5px;}
+.card-back span.ex-id{color:var(--muted);font-size:12px;font-style:italic;margin-top:2px;}
+.btn{display:block;width:100%;border:none;border-radius:10px;padding:13px 16px;font-size:15px;
+  font-family:inherit;cursor:pointer;margin:6px 0;}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--ink);}
+.note{color:var(--muted);font-size:13.5px;margin:6px 0;}
+.divider{border-top:1px solid var(--border);margin:22px 0;}
+.quiz-box{border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--card);}
+.qcount{font-size:12.5px;color:var(--muted);margin:0 0 6px;}
+.qword{font-family:Georgia,serif;font-size:20px;margin:0 0 14px;}
+.quiz-opt{display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px;
+  border-radius:9px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font-size:14.5px;}
+.quiz-opt.correct{background:var(--green);color:#fff;border-color:var(--green);}
+.quiz-opt.wrong{background:var(--red);color:#fff;border-color:var(--red);}
+.reset{background:none;border:none;color:var(--muted);font-size:12.5px;text-decoration:underline;
+  padding:0;margin-top:28px;cursor:pointer;}
+.menu-card{display:block;width:100%;text-align:left;border:1px solid var(--border);border-radius:14px;
+  padding:20px;margin-bottom:14px;background:var(--card);cursor:pointer;}
+.menu-card strong{font-family:Georgia,serif;font-size:19px;display:block;margin-bottom:4px;}
+.menu-card span{color:var(--muted);font-size:13.5px;}
+.backlink{background:none;border:none;color:var(--teal);font-size:13.5px;padding:0;
+  margin-bottom:14px;cursor:pointer;text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const VOCAB={
+kerja:[
+[["deadline","tenggat waktu","We must finish before the deadline.","Kita harus selesai sebelum tenggat waktu."],["schedule","jadwal","Check your schedule for today.","Cek jadwal kamu hari ini."],["meeting","rapat","The meeting starts at nine.","Rapatnya mulai jam sembilan."],["task","tugas","Please finish this task today.","Tolong selesaikan tugas ini hari ini."],["colleague","rekan kerja","My colleague helped me today.","Rekan kerja saya membantu saya hari ini."]],
+[["report","laporan","Send the report by email.","Kirim laporannya lewat email."],["email","surel","I will email you the file.","Saya akan mengirim file itu lewat email."],["message","pesan","She left a message for you.","Dia meninggalkan pesan untuk kamu."],["reply","balas","Please reply before noon.","Tolong balas sebelum siang."],["forward","teruskan","Can you forward this email?","Bisa tolong teruskan email ini?"]],
+[["attend","menghadiri","I will attend the meeting.","Saya akan menghadiri rapat."],["cancel","membatalkan","We had to cancel the trip.","Kami harus membatalkan perjalanan itu."],["postpone","menunda","Let's postpone the call.","Ayo kita tunda teleponnya."],["reschedule","menjadwalkan ulang","Can we reschedule to Friday?","Bisa kita jadwalkan ulang ke hari Jumat?"],["confirm","mengonfirmasi","Please confirm your attendance.","Tolong konfirmasi kehadiran kamu."]],
+[["agenda","agenda","The agenda has five items.","Agendanya ada lima poin."],["minutes","notulen","She wrote the meeting minutes.","Dia menulis notulen rapat."],["discuss","membahas","We need to discuss this issue.","Kita perlu membahas masalah ini."],["decide","memutuskan","We decided to launch next week.","Kami memutuskan untuk meluncurkan minggu depan."],["follow-up","tindak lanjut","I will send a follow-up email.","Saya akan mengirim email tindak lanjut."]],
+[["teamwork","kerja sama tim","Teamwork made the project succeed.","Kerja sama tim membuat proyek ini berhasil."],["cooperate","bekerja sama","Both teams cooperate well.","Kedua tim bekerja sama dengan baik."],["support","mendukung","My manager supports my idea.","Manajer saya mendukung ide saya."],["assist","membantu","Can you assist me with this?","Bisa bantu saya dengan ini?"],["contribute","berkontribusi","Everyone must contribute ideas.","Semua orang harus berkontribusi dengan ide."]],
+[["busy","sibuk","I am busy this afternoon.","Saya sibuk sore ini."],["available","tersedia","Are you available tomorrow?","Apakah kamu tersedia besok?"],["free","luang","I'm free after three.","Saya luang setelah jam tiga."],["occupied","terpakai","This room is occupied now.","Ruangan ini sedang terpakai."],["urgent","mendesak","This task is very urgent.","Tugas ini sangat mendesak."]],
+[["priority","prioritas","This project is our priority.","Proyek ini adalah prioritas kita."],["important","penting","It's important to reply fast.","Penting untuk membalas dengan cepat."],["focus","fokus","Please focus on this task.","Tolong fokus pada tugas ini."],["manage","mengelola","She manages the whole team.","Dia mengelola seluruh tim."],["organize","mengatur","We need to organize the files.","Kita perlu mengatur file-filenya."]],
+[["presentation","presentasi","He gave a great presentation.","Dia memberikan presentasi yang bagus."],["slide","slide","Please check slide number three.","Tolong cek slide nomor tiga."],["explain","menjelaskan","Can you explain this point?","Bisa jelaskan poin ini?"],["present","memaparkan","I will present the results.","Saya akan memaparkan hasilnya."],["summarize","meringkas","Please summarize the report.","Tolong ringkas laporannya."]],
+[["opinion","pendapat","What is your opinion on this?","Apa pendapat kamu soal ini?"],["suggest","menyarankan","I suggest we meet tomorrow.","Saya sarankan kita bertemu besok."],["disagree","tidak setuju","I disagree with this plan.","Saya tidak setuju dengan rencana ini."],["agree","setuju","We all agree with you.","Kami semua setuju dengan kamu."],["feedback","masukan","Thank you for your feedback.","Terima kasih atas masukannya."]],
+[["extend","memperpanjang","Can we extend the deadline?","Bisa kita perpanjang tenggat waktunya?"],["delay","menunda","The flight had a delay.","Penerbangannya mengalami penundaan."],["on time","tepat waktu","Please arrive on time.","Tolong datang tepat waktu."],["late","terlambat","Sorry, I was late today.","Maaf, saya terlambat hari ini."],["early","lebih awal","Let's start a bit early.","Ayo kita mulai sedikit lebih awal."]],
+[["client","klien","The client called this morning.","Kliennya menelepon tadi pagi."],["customer","pelanggan","Our customer needs help.","Pelanggan kita butuh bantuan."],["partner","mitra","They are our business partner.","Mereka adalah mitra bisnis kita."],["vendor","pemasok","We changed our vendor last month.","Kami mengganti pemasok bulan lalu."],["supplier","pemasok bahan","The supplier sent new prices.","Pemasok bahan mengirim harga baru."]],
+[["budget","anggaran","We have a small budget.","Kami punya anggaran yang kecil."],["cost","biaya","The cost is too high.","Biayanya terlalu tinggi."],["expense","pengeluaran","Please record every expense.","Tolong catat setiap pengeluaran."],["invoice","faktur","Send the invoice today.","Kirim fakturnya hari ini."],["payment","pembayaran","The payment is due Friday.","Pembayarannya jatuh tempo hari Jumat."]],
+[["project","proyek","This project starts next week.","Proyek ini dimulai minggu depan."],["plan","rencana","What is your plan today?","Apa rencana kamu hari ini?"],["goal","tujuan","Our goal is clear now.","Tujuan kita sekarang sudah jelas."],["target","target","We reached our sales target.","Kami mencapai target penjualan."],["achieve","mencapai","We achieved great results.","Kami mencapai hasil yang bagus."]],
+[["problem","masalah","We found a small problem.","Kami menemukan masalah kecil."],["issue","isu","Let's fix this issue now.","Ayo kita perbaiki isu ini sekarang."],["solve","menyelesaikan","Can you solve this problem?","Bisa kamu selesaikan masalah ini?"],["solution","solusi","I found a good solution.","Saya menemukan solusi yang bagus."],["challenge","tantangan","This task is a real challenge.","Tugas ini benar-benar tantangan."]],
+[["improve","meningkatkan","We must improve our service.","Kita harus meningkatkan layanan kita."],["develop","mengembangkan","They develop new products.","Mereka mengembangkan produk baru."],["progress","kemajuan","Our progress looks good.","Kemajuan kita terlihat bagus."],["growth","pertumbuhan","Sales growth is strong this year.","Pertumbuhan penjualan kuat tahun ini."],["success","kesuksesan","Hard work leads to success.","Kerja keras membawa pada kesuksesan."]],
+[["instruction","instruksi","Follow the instruction carefully.","Ikuti instruksinya dengan teliti."],["guideline","pedoman","Read the company guideline first.","Baca dulu pedoman perusahaan."],["procedure","prosedur","This is our standard procedure.","Ini adalah prosedur standar kita."],["policy","kebijakan","Check the new company policy.","Cek kebijakan perusahaan yang baru."],["rule","aturan","Please follow the office rule.","Tolong ikuti aturan kantor."]],
+[["responsible","bertanggung jawab","I am responsible for this task.","Saya bertanggung jawab atas tugas ini."],["accountable","harus mempertanggungjawabkan","We must be accountable for errors.","Kita harus mempertanggungjawabkan kesalahan."],["reliable","dapat diandalkan","She is a reliable worker.","Dia pekerja yang bisa diandalkan."],["trustworthy","dapat dipercaya","He is a trustworthy partner.","Dia mitra yang bisa dipercaya."],["dependable","bisa diandalkan","Our team is very dependable.","Tim kita sangat bisa diandalkan."]],
+[["greet","menyapa","Always greet your guests kindly.","Selalu sapa tamu kamu dengan ramah."],["introduce","memperkenalkan","Let me introduce my colleague.","Izinkan saya memperkenalkan rekan kerja saya."],["welcome","menyambut","We welcome new employees warmly.","Kami menyambut karyawan baru dengan hangat."],["farewell","perpisahan","We had a small farewell party.","Kami mengadakan pesta perpisahan kecil."],["thank","berterima kasih","I want to thank everyone.","Saya ingin berterima kasih pada semua orang."]],
+[["request","permintaan","Please send your request today.","Tolong kirim permintaan kamu hari ini."],["require","memerlukan","This job requires good English.","Pekerjaan ini memerlukan bahasa Inggris yang baik."],["provide","menyediakan","We provide full training.","Kami menyediakan pelatihan lengkap."],["offer","menawarkan","They offered me a new role.","Mereka menawarkan saya peran baru."],["deliver","mengirimkan","We will deliver it tomorrow.","Kami akan mengirimkannya besok."]],
+[["approve","menyetujui","My boss approved the plan.","Bos saya menyetujui rencananya."],["reject","menolak","They rejected our proposal.","Mereka menolak proposal kita."],["permission","izin","I need permission to leave early.","Saya perlu izin untuk pulang lebih awal."],["allow","mengizinkan","We allow flexible working hours.","Kami mengizinkan jam kerja yang fleksibel."],["decision","keputusan","This is an important decision.","Ini adalah keputusan yang penting."]]
+],
+harian:[
+[["must","harus","You must finish this today.","Kamu harus menyelesaikan ini hari ini."],["should","sebaiknya","You should rest now.","Kamu sebaiknya istirahat sekarang."],["have to","harus","I have to go now.","Saya harus pergi sekarang."],["need to","perlu","We need to talk.","Kita perlu bicara."],["want to","ingin","I want to learn English.","Saya ingin belajar bahasa Inggris."]],
+[["can","bisa","I can help you.","Saya bisa membantu kamu."],["could","bisa (sopan)","Could you help me?","Bisakah kamu membantu saya?"],["will","akan","I will call you later.","Saya akan menelepon kamu nanti."],["would","akan (andai)","I would love that.","Saya akan sangat suka itu."],["might","mungkin","It might rain today.","Mungkin hari ini akan hujan."]],
+[["let's","ayo kita","Let's go now.","Ayo kita pergi sekarang."],["please","tolong","Please close the door.","Tolong tutup pintunya."],["sorry","maaf","Sorry, I'm late.","Maaf, saya terlambat."],["excuse me","permisi","Excuse me, where is the toilet?","Permisi, di mana toiletnya?"],["thanks","terima kasih","Thanks for your help.","Terima kasih atas bantuannya."]],
+[["walk","berjalan","I walk to work every day.","Saya berjalan kaki ke kantor setiap hari."],["drive","menyetir","He drives to the office.","Dia menyetir ke kantor."],["buy","membeli","I need to buy milk.","Saya perlu membeli susu."],["cook","memasak","She cooks dinner every night.","Dia memasak makan malam setiap malam."],["clean","membersihkan","I clean my room today.","Saya membersihkan kamar saya hari ini."]],
+[["watch","menonton","We watch movies on weekends.","Kami menonton film di akhir pekan."],["listen","mendengarkan","I listen to music at home.","Saya mendengarkan musik di rumah."],["read","membaca","She reads a book every night.","Dia membaca buku setiap malam."],["write","menulis","I write in my journal daily.","Saya menulis di jurnal setiap hari."],["wait","menunggu","Please wait for me here.","Tolong tunggu saya di sini."]],
+[["happy","senang","I am happy today.","Saya senang hari ini."],["sad","sedih","She feels sad now.","Dia merasa sedih sekarang."],["angry","marah","He is angry with me.","Dia marah pada saya."],["hungry","lapar","I am hungry right now.","Saya lapar sekarang."],["thirsty","haus","We are thirsty after the walk.","Kami haus setelah jalan kaki."]],
+[["hot","panas","The weather is hot today.","Cuacanya panas hari ini."],["cold","dingin","The water is very cold.","Airnya sangat dingin."],["easy","mudah","This task is easy.","Tugas ini mudah."],["difficult","sulit","English grammar is difficult.","Tata bahasa Inggris itu sulit."],["expensive","mahal","This phone is expensive.","Ponsel ini mahal."]],
+[["cheap","murah","This shirt is cheap.","Kemeja ini murah."],["big","besar","They live in a big house.","Mereka tinggal di rumah yang besar."],["small","kecil","My room is quite small.","Kamar saya cukup kecil."],["fast","cepat","He drives very fast.","Dia menyetir sangat cepat."],["slow","lambat","The internet is slow today.","Internetnya lambat hari ini."]],
+[["today","hari ini","I am busy today.","Saya sibuk hari ini."],["tomorrow","besok","See you tomorrow.","Sampai jumpa besok."],["yesterday","kemarin","I met her yesterday.","Saya bertemu dia kemarin."],["now","sekarang","I need it now.","Saya membutuhkannya sekarang."],["later","nanti","I will call you later.","Saya akan menelepon kamu nanti."]],
+[["always","selalu","I always drink coffee in the morning.","Saya selalu minum kopi di pagi hari."],["sometimes","kadang-kadang","Sometimes I work from home.","Kadang-kadang saya kerja dari rumah."],["never","tidak pernah","She never gives up.","Dia tidak pernah menyerah."],["usually","biasanya","I usually sleep at ten.","Saya biasanya tidur jam sepuluh."],["often","sering","We often eat out on weekends.","Kami sering makan di luar saat akhir pekan."]],
+[["routine","rutinitas","I have a morning routine.","Saya punya rutinitas pagi."],["habit","kebiasaan","Reading is a good habit.","Membaca adalah kebiasaan yang baik."],["morning","pagi","I check email every morning.","Saya cek email setiap pagi."],["evening","malam","We relax in the evening.","Kami bersantai di malam hari."],["commute","perjalanan kerja","My commute takes one hour.","Perjalanan kerja saya makan waktu satu jam."]],
+[["grocery","belanja bahan makanan","I do grocery shopping weekly.","Saya belanja bahan makanan setiap minggu."],["laundry","cucian","I do laundry on Sunday.","Saya mencuci baju hari Minggu."],["chores","pekerjaan rumah","We share the house chores.","Kami berbagi pekerjaan rumah."],["errand","urusan","I have a quick errand today.","Saya ada urusan singkat hari ini."],["appointment","janji temu","I have a doctor's appointment.","Saya punya janji temu dengan dokter."]],
+[["weather","cuaca","The weather is nice today.","Cuacanya bagus hari ini."],["traffic","lalu lintas","Traffic was heavy this morning.","Lalu lintas padat tadi pagi."],["weekend","akhir pekan","I love a quiet weekend.","Saya suka akhir pekan yang tenang."],["holiday","hari libur","Next Monday is a holiday.","Senin depan adalah hari libur."],["vacation","liburan","We plan a short vacation.","Kami merencanakan liburan singkat."]],
+[["health","kesehatan","Health is more important than work.","Kesehatan lebih penting daripada pekerjaan."],["tired","lelah","I feel tired after work.","Saya merasa lelah setelah kerja."],["rest","istirahat","You should rest tonight.","Kamu harus istirahat malam ini."],["exercise","olahraga","I exercise every morning.","Saya olahraga setiap pagi."],["sleep","tidur","Good sleep helps your focus.","Tidur yang cukup membantu fokus kamu."]],
+[["hobby","hobi","Cooking is my favorite hobby.","Memasak adalah hobi favorit saya."],["interest","minat","She has interest in music.","Dia punya minat pada musik."],["relax","bersantai","I relax by reading books.","Saya bersantai dengan membaca buku."],["enjoy","menikmati","We enjoy our weekend trips.","Kami menikmati perjalanan akhir pekan kami."],["entertainment","hiburan","Movies are a good entertainment.","Film adalah hiburan yang bagus."]],
+[["family","keluarga","I spend Sundays with family.","Saya menghabiskan hari Minggu bersama keluarga."],["friend","teman","My friend works nearby.","Teman saya bekerja di dekat sini."],["neighbor","tetangga","Our neighbor is very kind.","Tetangga kami sangat baik."],["relationship","hubungan","We built a good relationship.","Kami membangun hubungan yang baik."],["community","komunitas","I joined a local community.","Saya bergabung dengan komunitas lokal."]],
+[["afford","mampu membeli","We can't afford that price.","Kami tidak mampu membeli dengan harga itu."],["save","menabung","I save money every month.","Saya menabung uang setiap bulan."],["spend","menghabiskan","Don't spend too much today.","Jangan menghabiskan terlalu banyak hari ini."],["borrow","meminjam","Can I borrow your pen?","Boleh saya pinjam pulpen kamu?"],["lend","meminjamkan","She lent me her laptop.","Dia meminjamkan laptopnya ke saya."]],
+[["shopping","belanja","I go shopping on weekends.","Saya belanja di akhir pekan."],["price","harga","The price went up recently.","Harganya baru-baru ini naik."],["discount","diskon","We got a nice discount.","Kami dapat diskon yang bagus."],["receipt","struk","Please keep your receipt.","Tolong simpan struk kamu."],["purchase","pembelian","This was a smart purchase.","Ini adalah pembelian yang pintar."]],
+[["travel","bepergian","I travel for work often.","Saya sering bepergian untuk kerja."],["journey","perjalanan","It was a long journey.","Itu adalah perjalanan yang panjang."],["destination","tujuan","Bali is a popular destination.","Bali adalah tujuan wisata yang populer."],["luggage","bagasi","Please check your luggage first.","Tolong cek bagasi kamu dulu."],["ticket","tiket","I booked my ticket online.","Saya memesan tiket saya secara online."]],
+[["achievement","pencapaian","This award is a great achievement.","Penghargaan ini adalah pencapaian yang hebat."],["confidence","kepercayaan diri","Practice builds your confidence.","Latihan membangun kepercayaan diri kamu."],["motivation","motivasi","Keep your motivation high.","Jaga motivasi kamu tetap tinggi."],["patience","kesabaran","Learning needs a lot of patience.","Belajar butuh banyak kesabaran."],["gratitude","rasa syukur","I feel gratitude for this journey.","Saya merasa bersyukur atas perjalanan ini."]]
+]
+};
+const LABELS={kerja:{title:"Kerja & Meeting",emoji:"💼"},harian:{title:"Kehidupan Sehari-hari",emoji:"🌤️"}};
+
+let category=null;
+let completed=[],unlocked=1,selDay=1,flipped=new Set(),quiz=null;
+
+function storageKey(){return 'vocabProgress_'+category;}
+function loadCompleted(){try{const a=JSON.parse(localStorage.getItem(storageKey())||'[]');const len=VOCAB[category].length;return Array.isArray(a)?a.filter(n=>n>=1&&n<=len):[];}catch(e){return [];}}
+function saveCompleted(){try{localStorage.setItem(storageKey(),JSON.stringify(completed));}catch(e){}}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function chooseCategory(cat){category=cat;completed=loadCompleted();const len=VOCAB[category].length;unlocked=completed.length?Math.min(len,Math.max(...completed)+1):1;selDay=unlocked;flipped=new Set();quiz=null;render();}
+function backToMenu(){category=null;render();}
+function selectDay(d){if(d>unlocked)return;selDay=d;flipped=new Set();quiz=null;render();}
+function flip(i){flipped.has(i)?flipped.delete(i):flipped.add(i);render();}
+function completeToday(){const len=VOCAB[category].length;if(!completed.includes(selDay)){completed.push(selDay);saveCompleted();unlocked=Math.min(len,Math.max(...completed)+1);}render();}
+function getPool(){const V=VOCAB[category];const days=[selDay-1,selDay-2].filter(d=>d>=1&&completed.includes(d));let w=[];days.forEach(d=>w.push(...V[d-1]));return w;}
+function startQuiz(){const V=VOCAB[category];const ALL=V.flat();const pool=getPool();if(pool.length===0)return;const qCount=Math.min(5,pool.length);const chosen=shuffle(pool).slice(0,qCount);const questions=chosen.map(w=>{const distractors=shuffle(ALL.filter(x=>x[0]!==w[0])).slice(0,3).map(x=>x[1]);const opts=shuffle([w[1],...distractors]);return {en:w[0],correct:w[1],opts};});quiz={questions,idx:0,score:0,answered:false,selectedIdx:null,done:false};render();}
+function answerQuiz(i){if(quiz.answered)return;quiz.answered=true;quiz.selectedIdx=i;const q=quiz.questions[quiz.idx];if(q.opts[i]===q.correct)quiz.score++;render();setTimeout(()=>{quiz.idx++;quiz.answered=false;quiz.selectedIdx=null;if(quiz.idx>=quiz.questions.length)quiz.done=true;render();},900);}
+function resetProgress(){if(!confirm('Yakin mau hapus progres kategori ini?'))return;completed=[];try{localStorage.removeItem(storageKey());}catch(e){}unlocked=1;selDay=1;flipped=new Set();quiz=null;render();}
+
+function renderMenu(){
+  document.getElementById('app').innerHTML=`
+    <h1>Vocab Harian</h1>
+    <p class="sub">Pilih mau hafalin kosakata buat apa dulu. Progres tiap kategori kesimpen terpisah.</p>
+    <button class="menu-card" onclick="chooseCategory('kerja')"><strong>💼 Kerja &amp; Meeting</strong><span>20 hari kosakata kantor &amp; rapat</span></button>
+    <button class="menu-card" onclick="chooseCategory('harian')"><strong>🌤️ Kehidupan Sehari-hari</strong><span>20 hari kosakata dasar &amp; harian (termasuk kata dasar kayak must, should, dll)</span></button>
+  `;
+}
+function renderDetail(){
+  const V=VOCAB[category],len=V.length,label=LABELS[category];
+  const daysHTML=V.map((_,idx)=>{const d=idx+1;let cls='day-chip';if(completed.includes(d))cls+=' done';else if(d>unlocked)cls+=' locked';if(d===selDay)cls+=' current';return `<button class="${cls}" ${d>unlocked?'disabled':''} onclick="selectDay(${d})">${d}</button>`;}).join('');
+  const words=V[selDay-1];
+  const cardsHTML=words.map((w,i)=>`<div class="card ${flipped.has(i)?'flipped':''}" onclick="flip(${i})"><div class="card-inner"><div class="card-face"><strong>${w[0]}</strong><span>Ketuk buat lihat arti</span></div><div class="card-face card-back"><strong>${w[1]}</strong><span class="ex">${w[2]}</span><span class="ex-id">${w[3]}</span></div></div></div>`).join('');
+  let actionHTML='';
+  if(completed.includes(selDay)){actionHTML=`<p class="note">✓ Sudah kamu hafalkan. Ketuk kartu buat baca ulang.</p>`;}
+  else if(selDay===unlocked){actionHTML=`<button class="btn btn-primary" onclick="completeToday()">Tandai Hari Ini Selesai</button>`;}
+  const poolLen=getPool().length;
+  let quizHTML='';
+  if(quiz&&!quiz.done){
+    const q=quiz.questions[quiz.idx];
+    quizHTML=`<div class="quiz-box"><p class="qcount">Soal ${quiz.idx+1}/${quiz.questions.length} • Skor: ${quiz.score}</p><p class="qword">${q.en}</p>${q.opts.map((o,i)=>`<button class="quiz-opt ${quiz.answered?(o===q.correct?'correct':(i===quiz.selectedIdx?'wrong':'')):''}" ${quiz.answered?'disabled':''} onclick="answerQuiz(${i})">${o}</button>`).join('')}</div>`;
+  }else if(quiz&&quiz.done){
+    quizHTML=`<div class="quiz-box"><p class="qword">Skor: ${quiz.score}/${quiz.questions.length}</p><button class="btn btn-primary" onclick="startQuiz()">Ulangi Kuis</button></div>`;
+  }else{
+    quizHTML=poolLen>0?`<button class="btn btn-outline" onclick="startQuiz()">🔁 Mulai Kuis Review (${poolLen} kata dari hari kemarin/kemarin lusa)</button>`:`<p class="note">Kuis review buat ngulang kata kemarin &amp; kemarin lusa bakal muncul mulai hari ke-2.</p>`;
+  }
+  document.getElementById('app').innerHTML=`
+    <button class="backlink" onclick="backToMenu()">← Ganti kategori</button>
+    <h1>${label.emoji} ${label.title}</h1>
+    <p class="stat">Hari ${selDay} dari ${len} • ${completed.length} hari selesai • ${completed.length*5} kata dihafal</p>
+    <div class="bar"><div class="bar-fill" style="width:${completed.length/len*100}%"></div></div>
+    <div class="days">${daysHTML}</div>
+    <h2>Kata Hari ${selDay}</h2>
+    ${cardsHTML}
+    ${actionHTML}
+    <div class="divider"></div>
+    <h2>Kuis Review</h2>
+    ${quizHTML}
+    <button class="reset" onclick="resetProgress()">Reset progres kategori ini</button>
+  `;
+}
+function render(){category===null?renderMenu():renderDetail();}
+render();
+</script>
+</body>
+</html>

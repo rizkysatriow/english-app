@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Bahasa Inggris — Latihan, Progres & Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAF6EE; min-height: 100vh; color: #20232A; }
+    .container { max-width: 860px; margin: 0 auto; padding: 20px; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 20px; border: 1px solid #DED6C3; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: #2F6F6B; color: white; }
+    .btn-primary:hover { background: #245855; }
+    .btn-secondary { background: #64748b; color: white; }
+    .btn-danger { background: #B3432B; color: white; }
+    .btn-outline { background: transparent; border: 1px solid #DED6C3; color: #20232A; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .input-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #2F6F6B; box-shadow: 0 0 0 3px rgba(47,111,107,0.15); }
+    .hidden { display: none !important; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+    .alert-error { background: #fef2f2; color: #B3432B; border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #2F8F5B; border: 1px solid #bbf7d0; }
+    .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; font-weight: 600; z-index: 200; }
+    .toast.success { background: #2F8F5B; }
+    .toast.error { background: #B3432B; }
+    header.top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    header.top h1 { font-family: Georgia, serif; font-size: 22px; }
+    .user-info { display: flex; align-items: center; gap: 12px; color: #374151; font-size: 14px; }
+    .logout-btn { background: none; border: 1px solid #d1d5db; color: #374151; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #DED6C3; background: white; cursor: pointer; font-weight: 700; font-size: 14px; text-align: center; }
+    .tab.active { background: #2F6F6B; color: white; border-color: #2F6F6B; }
+    .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 560px) { .cat-grid { grid-template-columns: 1fr; } }
+    .cat-card { border: 2px solid #DED6C3; border-radius: 12px; padding: 16px; cursor: pointer; background: white; text-align: left; font-family: inherit; }
+    .cat-card.active { border-color: #C98A1B; background: #FFFBEB; }
+    .cat-card strong { font-size: 16px; display: block; }
+    .cat-card span { color: #8A8371; font-size: 13px; }
+    .stat-line { font-size: 13px; color: #8A8371; margin-bottom: 6px; }
+    .bar { height: 8px; background: #DED6C3; border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+    .bar-fill { height: 100%; background: #C98A1B; transition: width .3s; }
+    .days { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 14px; }
+    .day-chip { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 9px; font-size: 13px; border: 1px solid #DED6C3; background: white; color: #8A8371; cursor: pointer; font-weight: 700; }
+    .day-chip.done { background: #2F6F6B; color: #fff; border-color: #2F6F6B; }
+    .day-chip.current { border-color: #C98A1B; color: #20232A; box-shadow: 0 0 0 2px rgba(201,138,27,.25); }
+    .day-chip.locked { opacity: .35; cursor: not-allowed; }
+    .flash { perspective: 900px; height: 150px; margin-bottom: 10px; cursor: pointer; }
+    .flash-inner { position: relative; width: 100%; height: 100%; transition: transform .35s; transform-style: preserve-3d; }
+    .flash.flipped .flash-inner { transform: rotateY(180deg); }
+    .flash-face { position: absolute; inset: 0; backface-visibility: hidden; border: 1px solid #DED6C3; border-radius: 10px; background: #fff; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; }
+    .flash-face strong { font-family: Georgia, serif; font-size: 19px; }
+    .flash-face span { font-size: 12.5px; color: #8A8371; margin-top: 4px; }
+    .flash-back { transform: rotateY(180deg); }
+    .flash-back strong { color: #2F6F6B; }
+    .quiz-box { border: 1px solid #DED6C3; border-radius: 12px; padding: 16px; background: #fff; margin-top: 12px; }
+    .qword { font-family: Georgia, serif; font-size: 20px; margin: 4px 0 14px; }
+    .quiz-opt { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 12px 14px; border-radius: 9px; border: 1px solid #DED6C3; background: #FAF6EE; color: #20232A; font-size: 14.5px; cursor: pointer; font-family: inherit; }
+    .quiz-opt.correct { background: #2F8F5B; color: #fff; border-color: #2F8F5B; }
+    .quiz-opt.wrong { background: #B3432B; color: #fff; border-color: #B3432B; }
+    .quiz-opt:disabled { cursor: default; }
+    .vocab-list { list-style: none; }
+    .vocab-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 4px; border-bottom: 1px solid #eee; gap: 10px; }
+    .vocab-word { font-weight: 700; font-size: 15px; }
+    .vocab-meaning { color: #4b5563; font-size: 14px; }
+    .vocab-example { color: #6b7280; font-size: 13px; font-style: italic; margin-top: 4px; }
+    .vocab-category { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-top: 6px; }
+    .vocab-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .vocab-actions .btn { padding: 6px 12px; font-size: 12px; }
+    .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-input { flex: 1; min-width: 180px; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 560px) { .stats-grid { grid-template-columns: 1fr; } }
+    .stat-card { background: #FFFBEB; border: 1px solid #DED6C3; border-radius: 10px; padding: 14px; text-align: center; }
+    .stat-card b { font-size: 24px; display: block; color: #2F6F6B; }
+    .stat-card span { font-size: 12px; color: #8A8371; }
+    table.report { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    table.report th, table.report td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: left; }
+    table.report th { color: #8A8371; font-weight: 700; font-size: 12px; text-transform: uppercase; }
+    .bar-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+    .bar-row .lbl { width: 90px; color: #555; flex-shrink: 0; }
+    .bar-row .track { flex: 1; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+    .bar-row .fill { height: 100%; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .badge.pass { background: #dcfce7; color: #15803d; }
+    .badge.fail { background: #fee2e2; color: #b91c1c; }
+    .empty-state { text-align: center; padding: 30px; color: #9ca3af; font-size: 14px; }
+    .auth-form { max-width: 400px; margin: 40px auto; }
+    .note { color: #8A8371; font-size: 13.5px; margin: 8px 0; }
+    .divider { border-top: 1px solid #DED6C3; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="top hidden" id="header">
+      <h1>🇬🇧 English Practice</h1>
+      <div class="user-info">
+        <span id="userEmail"></span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div id="authSection">
+      <div class="card auth-form">
+        <h2 id="authTitle" style="margin-bottom:18px">Masuk</h2>
+        <div id="alert" class="alert alert-error hidden"></div>
+        <form id="loginForm">
+          <div class="input-group"><label>Email</label><input type="email" id="email" required autocomplete="email"></div>
+          <div class="input-group"><label>Password</label><input type="password" id="password" required autocomplete="current-password"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%" id="submitBtn">Masuk</button>
+        </form>
+        <form id="registerForm" class="hidden">
+          <div class="input-group"><label>Email</label><input type="email" id="regEmail" required></div>
+          <div class="input-group"><label>Password (min 8 karakter)</label><input type="password" id="regPassword" required minlength="8"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%">Daftar</button>
+        </form>
+        <p style="margin-top:14px;text-align:center;color:#6b7280;font-size:14px">
+          <span id="authToggleText">Belum punya akun?</span>
+          <button type="button" id="authToggle" style="background:none;border:none;color:#2F6F6B;cursor:pointer;font-weight:700">Daftar</button>
+        </p>
+      </div>
+    </div>
+
+    <div id="appSection" class="hidden">
+      <div class="tabs">
+        <button class="tab active" data-tab="latihan">📝 Latihan</button>
+        <button class="tab" data-tab="vocab">📚 Vocab Saya</button>
+        <button class="tab" data-tab="report">📊 Report</button>
+      </div>
+
+      <!-- TAB LATIHAN -->
+      <div id="tab-latihan">
+        <div class="card">
+          <h2 style="margin-bottom:4px">Latihan Harian</h2>
+          <p class="note">Progres tersimpan di database — login di HP/laptop mana pun lanjut dari hari terakhir.</p>
+          <div class="cat-grid" id="catGrid"></div>
+          <p class="stat-line" id="latihanStat"></p>
+          <div class="bar"><div class="bar-fill" id="latihanBar" style="width:0%"></div></div>
+          <div class="days" id="dayChips"></div>
+          <h3 id="dayTitle" style="margin:6px 0 10px;font-size:15px"></h3>
+          <div id="flashList"></div>
+          <div id="dayAction" style="margin-top:8px"></div>
+        </div>
+        <div class="card">
+          <h2 style="font-size:16px;margin-bottom:6px">🔁 Kuis Review</h2>
+          <p class="note">Soal diambil dari 2 hari sebelumnya. Nilai otomatis masuk report harian.</p>
+          <div id="quizBox"><p class="note">Pilih hari dulu, lalu mulai kuis.</p></div>
+        </div>
+      </div>
+
+      <!-- TAB VOCAB -->
+      <div id="tab-vocab" class="hidden">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h2>Kosakata Saya</h2>
+            <button class="btn btn-primary" id="openModalBtn">+ Tambah</button>
+          </div>
+          <div class="filters">
+            <input type="text" class="filter-input" id="searchInput" placeholder="Cari kata / arti...">
+            <select id="categoryFilter"><option value="">Semua Kategori</option></select>
+          </div>
+          <ul class="vocab-list" id="vocabList"></ul>
+        </div>
+      </div>
+
+      <!-- TAB REPORT -->
+      <div id="tab-report" class="hidden">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <h2>📊 Report Nilai Harian</h2>
+            <select id="reportCat" style="width:auto"><option value="">Semua kategori</option></select>
+          </div>
+          <p class="note">Patokan tugas: <b>lulus jika rata-rata ≥ 70</b> dan selesaikan 20 hari per kategori.</p>
+          <div class="stats-grid">
+            <div class="stat-card"><b id="stAttempts">0</b><span>Total latihan</span></div>
+            <div class="stat-card"><b id="stAvg">0</b><span>Rata-rata nilai</span></div>
+            <div class="stat-card"><b id="stWords">0</b><span>Kata dihafal (5/hari)</span></div>
+          </div>
+          <div id="taskStatus" style="margin-bottom:12px"></div>
+          <h3 style="font-size:14px;margin-bottom:8px">Grafik harian</h3>
+          <div id="dailyBars"></div>
+          <div class="divider"></div>
+          <h3 style="font-size:14px;margin-bottom:8px">Tabel harian</h3>
+          <div style="overflow-x:auto"><table class="report"><thead><tr><th>Tanggal</th><th>Latihan</th><th>Rata-rata</th><th>Terbaik</th><th>Status</th></tr></thead><tbody id="dailyTable"></tbody></table></div>
+          <div class="divider"></div>
+          <h3 style="font-size:14px;margin-bottom:8px">Riwayat latihan</h3>
+          <div id="historyList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="vocabModal">
+    <div class="modal-content">
+      <div class="modal-header"><h2 id="modalTitle">Tambah Kata</h2><button class="close-btn" id="closeModal">&times;</button></div>
+      <div id="modalAlert" class="alert alert-error hidden"></div>
+      <form id="vocabForm">
+        <input type="hidden" id="vocabId">
+        <div class="input-group"><label>Kata *</label><input type="text" id="word" required maxlength="100"></div>
+        <div class="input-group"><label>Arti *</label><textarea id="meaning" required maxlength="500" rows="3"></textarea></div>
+        <div class="input-group"><label>Contoh kalimat</label><textarea id="example" maxlength="500" rows="2"></textarea></div>
+        <div class="input-group"><label>Kategori</label><input type="text" id="category" maxlength="50" list="categories"><datalist id="categories"></datalist></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end"><button type="button" class="btn btn-secondary" id="cancelModal">Batal</button><button type="submit" class="btn btn-primary" id="saveBtn">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
