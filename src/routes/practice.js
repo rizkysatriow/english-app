@@ -14,6 +14,7 @@ router.use(authMiddleware);
 // Submit jawaban kuis — skor dihitung di SERVER dari data VOCAB (anti manipulasi)
 const submitSchema = z.object({
   category: z.string().min(1),
+  level: z.string().optional().default('basic'),
   day: z.number().int().min(1),
   quiz_type: z.string().optional().default('review'),
   answers: z.array(z.object({
@@ -24,12 +25,14 @@ const submitSchema = z.object({
 
 router.post('/submit', validate(submitSchema), (req, res, next) => {
   try {
-    const { category, day, quiz_type, answers } = req.validated;
+    const { category, level = 'basic', day, quiz_type, answers } = req.validated;
     if (!VOCAB[category]) throw new AppError('Category not found', 404);
+    const lvl = ['basic', 'middle', 'expert'].includes(level) ? level : 'basic';
+    if (!VOCAB[category][lvl]) throw new AppError('Level not found', 404);
 
-    // Cari arti benar dari semua kosakata kategori tsb
+    // Cari arti benar dari semua kosakata kategori+level tsb (sama seperti HTML baru)
     const answerKey = new Map();
-    VOCAB[category].flat().forEach((w) => answerKey.set(w[0], w[1]));
+    VOCAB[category][lvl].flat().forEach((w) => answerKey.set(w[0], w[1]));
 
     let score = 0;
     const graded = answers.map((a) => {
@@ -40,11 +43,11 @@ router.post('/submit', validate(submitSchema), (req, res, next) => {
     });
 
     const saved = savePracticeResult(req.user.id, {
-      category, day, quiz_type, score, total: answers.length, answers: graded,
+      category, level: lvl, day, quiz_type, score, total: answers.length, answers: graded,
     });
     res.status(201).json({
       id: saved.id,
-      category, day, quiz_type,
+      category, level: lvl, day, quiz_type,
       score, total: answers.length,
       percentage: saved.percentage,
       graded,
@@ -55,6 +58,7 @@ router.post('/submit', validate(submitSchema), (req, res, next) => {
 
 const historyQuery = z.object({
   category: z.string().optional(),
+  level: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -73,6 +77,7 @@ router.get('/history', validateQuery(historyQuery), (req, res, next) => {
 // Report nilai harian — patokan menyelesaikan tugas
 const reportQuery = z.object({
   category: z.string().optional(),
+  level: z.string().optional(),
   days: z.coerce.number().int().min(1).max(365).default(30),
 });
 

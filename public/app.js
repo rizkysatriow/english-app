@@ -32,28 +32,44 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 // ---------- auth ----------
-function setAuth(token, email) {
+let mustChangePassword = false;
+function setAuth(token, email, mustChange = false) {
   authToken = token;
   localStorage.setItem('token', token);
   if (email) localStorage.setItem('email', email);
+  mustChangePassword = !!mustChange;
+  localStorage.setItem('mustChange', mustChangePassword ? '1' : '0');
   updateUIForAuth();
 }
 function clearAuth() {
-  authToken = null; currentUser = null;
-  localStorage.removeItem('token'); localStorage.removeItem('email');
+  authToken = null; currentUser = null; mustChangePassword = false;
+  localStorage.removeItem('token'); localStorage.removeItem('email'); localStorage.removeItem('mustChange');
   updateUIForAuth();
 }
 function updateUIForAuth() {
   const isAuth = !!authToken;
   $('#authSection').classList.toggle('hidden', isAuth);
-  $('#appSection').classList.toggle('hidden', !isAuth);
   $('#header').classList.toggle('hidden', !isAuth);
+  // Bila wajib ganti password: tampilkan form ganti, sembunyikan app utama
+  const force = isAuth && mustChangePassword;
+  $('#forceChangeSection')?.classList.toggle('hidden', !force);
+  $('#appSection').classList.toggle('hidden', !isAuth || force);
   if (isAuth) {
     $('#userEmail').textContent = localStorage.getItem('email') || '';
-    bootApp();
+    if (!force) bootApp();
   }
 }
+async function refreshMe() {
+  try {
+    const d = await apiRequest('/auth/me');
+    mustChangePassword = !!d.user?.mustChangePassword;
+    localStorage.setItem('mustChange', mustChangePassword ? '1' : '0');
+    if (d.user?.email) localStorage.setItem('email', d.user.email);
+  } catch { /* token invalid -> ditangani pemanggil */ }
+  updateUIForAuth();
+}
 function switchAuthMode(isRegister) {
+  $('#forgotForm')?.classList.add('hidden');
   $('#loginForm').classList.toggle('hidden', isRegister);
   $('#registerForm').classList.toggle('hidden', !isRegister);
   $('#authTitle').textContent = isRegister ? 'Daftar Akun' : 'Masuk';
@@ -66,8 +82,12 @@ async function handleLogin(e) {
   const btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'Masuk...';
   try {
     const data = await apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ email: $('#email').value.trim(), password: $('#password').value }) });
-    setAuth(data.token, data.user.email);
-    showToast('Selamat datang kembali!');
+    setAuth(data.token, data.user.email, data.user.mustChangePassword);
+    if (data.user.mustChangePassword) {
+      showToast('Login pakai password reset — wajib ganti password dulu', 'error');
+    } else {
+      showToast('Selamat datang kembali!');
+    }
   } catch (err) { showAlert($('#alert'), err.message); }
   finally { btn.disabled = false; btn.textContent = 'Masuk'; }
 }
@@ -75,9 +95,49 @@ async function handleRegister(e) {
   e.preventDefault(); hideAlert($('#alert'));
   try {
     const data = await apiRequest('/auth/register', { method: 'POST', body: JSON.stringify({ email: $('#regEmail').value.trim(), password: $('#regPassword').value }) });
-    setAuth(data.token, data.user.email);
+    setAuth(data.token, data.user.email, false);
     showToast('Akun berhasil dibuat!');
   } catch (err) { showAlert($('#alert'), err.message); }
+}
+function showForgot(show) {
+  $('#loginForm').classList.toggle('hidden', show);
+  $('#forgotForm').classList.toggle('hidden', !show);
+  hideAlert($('#alert'));
+  $('#forgotResult')?.classList.add('hidden');
+}
+async function handleForgot(e) {
+  e.preventDefault();
+  const btn = $('#forgotBtn'); btn.disabled = true; btn.textContent = 'Mereset...';
+  try {
+    const data = await apiRequest('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: $('#forgotEmail').value.trim() }) });
+    const box = $('#forgotResult');
+    // Tampilkan password default sesuai permintaan
+    box.innerHTML = `Password direset ke <b>user123</b>. Silakan login lalu <b>wajib ganti password</b>.`;
+    box.className = 'alert alert-success';
+    box.classList.remove('hidden');
+    showToast('Password direset ke user123');
+  } catch (err) {
+    const box = $('#forgotResult');
+    box.textContent = err.message;
+    box.className = 'alert alert-error';
+    box.classList.remove('hidden');
+  } finally { btn.disabled = false; btn.textContent = 'Reset ke user123'; }
+}
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const alertEl = $('#changeAlert'); hideAlert(alertEl);
+  const btn = $('#changeBtn'); btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try {
+    const body = { newPassword: $('#newPassword').value };
+    if ($('#curPassword').value) body.currentPassword = $('#curPassword').value;
+    const data = await apiRequest('/auth/change-password', { method: 'POST', body: JSON.stringify(body) });
+    showToast(data.message || 'Password diganti');
+    $('#changeForm').reset();
+    mustChangePassword = false;
+    localStorage.setItem('mustChange', '0');
+    updateUIForAuth();
+  } catch (err) { showAlert(alertEl, err.message); }
+  finally { btn.disabled = false; btn.textContent = 'Ganti Password'; }
 }
 
 // ---------- tabs ----------
@@ -94,78 +154,153 @@ document.querySelectorAll('.tab').forEach((t) => {
   });
 });
 
-// ---------- LATIHAN (via API, progres tersimpan di DB) ----------
+// ---------- LATIHAN (alur baru: Kategori -> Level -> Hari) ----------
 let lessonCats = [];
-let activeCat = 'kerja';
+let activeCat = null;      // 'kerja' | 'harian' | null (menu kategori)
+let activeLevel = null;    // 'basic' | 'middle' | 'expert' | null (menu level)
 let activeDay = 1;
-let progressMap = {};
+let progressMap = {};      // key `${cat}__${level}` -> {completed_days, current_day}
 let flipped = new Set();
 let quizState = null;
 
+function pkey(cat, lv) { return `${cat}__${lv}`; }
+
+function saveLastPos() {
+  try {
+    if (activeCat) localStorage.setItem('latCat', activeCat);
+    if (activeLevel) localStorage.setItem('latLevel', activeLevel);
+  } catch { /* abaikan */ }
+}
+
+// Level terbuka pertama yang belum tuntas (buat lanjut otomatis); kalau semua tuntas, level terbuka terakhir (buat review).
+function firstOpenLevel(catId) {
+  const c = catOf(catId);
+  if (!c || !(c.levels || []).length) return 'basic';
+  const open = (c.levels || []).filter((l) => l.unlocked);
+  const todo = open.find((l) => (catProgress(catId, l.id).completed_days.length) < l.totalDays);
+  return (todo || open[open.length - 1] || c.levels[0]).id;
+}
+
+// Kategori pertama yang belum tuntas semua levelnya; kalau semua tuntas, kategori pertama.
+function continueCategory() {
+  const notDone = lessonCats.find((c) => (c.levels || []).some((l) => (catProgress(c.id, l.id).completed_days.length) < l.totalDays));
+  return (notDone || lessonCats[0])?.id || 'kerja';
+}
+
 async function bootApp() {
   await Promise.all([loadLessonCats(), loadProgress(), loadVocab()]);
-  renderCats();
-  await selectDay(activeDay, false);
+  // Langsung masuk ke materi tanpa klik: pakai posisi terakhir, atau lanjutkan otomatis.
+  let cat = null, lv = null;
+  try { cat = localStorage.getItem('latCat'); lv = localStorage.getItem('latLevel'); } catch { /* abaikan */ }
+  if (cat && catOf(cat)) {
+    activeCat = cat;
+    const lvo = lv && levelOf(cat, lv);
+    activeLevel = (lvo && lvo.unlocked) ? lv : firstOpenLevel(cat);
+  } else {
+    activeCat = continueCategory();
+    activeLevel = firstOpenLevel(activeCat);
+  }
+  renderSelectors();
+  await selectDay(progressMap[pkey(activeCat, activeLevel)]?.current_day || 1);
 }
 
 async function loadLessonCats() {
-  try { lessonCats = await apiRequest('/lessons'); if (!lessonCats.find((c) => c.id === activeCat)) activeCat = lessonCats[0]?.id || 'kerja'; }
-  catch { lessonCats = [{ id: 'kerja', title: 'Kerja & Meeting', totalDays: 20 }, { id: 'harian', title: 'Kehidupan Sehari-hari', totalDays: 20 }]; }
+  try {
+    lessonCats = await apiRequest('/lessons');
+    if (activeCat && !lessonCats.find((c) => c.id === activeCat)) { activeCat = null; activeLevel = null; }
+  } catch {
+    lessonCats = [
+      { id: 'kerja', title: 'Kerja & Meeting', emoji: '💼', totalDays: 32, levels: [{ id: 'basic', title: 'Basic', totalDays: 20, completed_days: [], current_day: 1, unlocked: true }] },
+      { id: 'harian', title: 'Kehidupan Sehari-hari', emoji: '🌤️', totalDays: 32, levels: [{ id: 'basic', title: 'Basic', totalDays: 20, completed_days: [], current_day: 1, unlocked: true }] },
+    ];
+  }
 }
 async function loadProgress() {
   try {
     const all = await apiRequest('/progress');
     progressMap = {};
-    all.forEach((p) => { progressMap[p.category] = p; });
-    // tentukan hari aktif = current_day kategori aktif
-    const p = progressMap[activeCat];
-    if (p) activeDay = p.current_day;
+    all.forEach((p) => { progressMap[pkey(p.category, p.level || 'basic')] = p; });
+    // sinkronkan info level di lessonCats bila ada
+    lessonCats.forEach((c) => (c.levels || []).forEach((lv) => {
+      const p = progressMap[pkey(c.id, lv.id)];
+      if (p) { lv.completed_days = p.completed_days; lv.current_day = p.current_day; }
+    }));
   } catch (err) { console.warn(err.message); }
 }
 
-function catProgress(cat) {
-  return progressMap[cat] || { completed_days: [], current_day: 1 };
+function catOf(id) { return lessonCats.find((c) => c.id === id); }
+function levelOf(catId, lvId) { return catOf(catId)?.levels?.find((l) => l.id === lvId); }
+function catProgress(cat, lv) {
+  return progressMap[pkey(cat, lv)] || { completed_days: [], current_day: 1 };
 }
-function totalDaysOf(cat) {
-  return lessonCats.find((c) => c.id === cat)?.totalDays || 20;
+function totalDaysOf(cat, lv) {
+  return levelOf(cat, lv)?.totalDays || 20;
 }
 
-function renderCats() {
-  const grid = $('#catGrid');
-  grid.innerHTML = lessonCats.map((c) => {
-    const p = catProgress(c.id);
-    const done = p.completed_days.length;
-    return `<button class="cat-card ${c.id === activeCat ? 'active' : ''}" data-cat="${c.id}">
-      <strong>${c.id === 'kerja' ? '💼' : '🌤️'} ${escapeHtml(c.title)}</strong>
-      <span>${done}/${c.totalDays} hari • ${done * 5} kata • lanjut: hari ${p.current_day}</span>
+// Kategori + level selalu terlihat di awal (tanpa menu/klik berlapis).
+function renderSelectors() {
+  const catSeg = $('#catSeg');
+  catSeg.innerHTML = lessonCats.map((c) => {
+    const done = (c.levels || []).reduce((s, l) => s + (catProgress(c.id, l.id).completed_days.length), 0);
+    const total = c.totalDays || (c.levels || []).reduce((s, l) => s + l.totalDays, 0);
+    const finished = total > 0 && done >= total;
+    return `<button class="seg-btn ${c.id === activeCat ? 'active' : ''}" data-cat="${c.id}">
+      ${finished ? '✅ ' : ''}${escapeHtml(c.emoji || '')} ${escapeHtml(c.title)}<small>${done}/${total} hari</small>
     </button>`;
   }).join('');
-  grid.querySelectorAll('.cat-card').forEach((b) => b.addEventListener('click', async () => {
-    activeCat = b.dataset.cat;
-    await loadProgress();
-    renderCats();
-    await selectDay(progressMap[activeCat]?.current_day || 1);
-  }));
+  catSeg.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => selectCat(b.dataset.cat)));
+
+  const c = catOf(activeCat);
+  const levelSeg = $('#levelSeg');
+  levelSeg.innerHTML = ((c && c.levels) || []).map((lv) => {
+    const done = catProgress(activeCat, lv.id).completed_days.length;
+    const finished = done >= lv.totalDays;
+    const label = !lv.unlocked ? `🔒 ${escapeHtml(lv.title)}` : `${finished ? '✅ ' : ''}${escapeHtml(lv.title)}`;
+    return `<button class="seg-btn ${lv.id === activeLevel ? 'active' : ''} ${lv.unlocked ? '' : 'locked'}" data-lv="${lv.id}" ${lv.unlocked ? '' : 'disabled'}>
+      ${label}<small>${lv.unlocked ? `${done}/${lv.totalDays} hari` : 'kunci'}</small>
+    </button>`;
+  }).join('');
+  levelSeg.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => selectLevel(b.dataset.lv)));
 }
 
-async function selectDay(day, rerenderCats = true) {
-  const total = totalDaysOf(activeCat);
-  const p = catProgress(activeCat);
+async function selectCat(id) {
+  if (!catOf(id) || id === activeCat) return;
+  activeCat = id;
+  // Pertahankan level bila terbuka di kategori baru, kalau tidak ambil yang lanjut otomatis.
+  const lv = activeLevel && levelOf(id, activeLevel);
+  activeLevel = (lv && lv.unlocked) ? activeLevel : firstOpenLevel(id);
+  saveLastPos();
+  renderSelectors();
+  await selectDay(progressMap[pkey(activeCat, activeLevel)]?.current_day || 1);
+}
+
+async function selectLevel(id) {
+  const lv = levelOf(activeCat, id);
+  if (!lv?.unlocked) { showToast('Selesaikan level sebelumnya dulu', 'error'); return; }
+  if (id === activeLevel) return;
+  activeLevel = id;
+  saveLastPos();
+  renderSelectors();
+  await selectDay(progressMap[pkey(activeCat, activeLevel)]?.current_day || 1);
+}
+
+async function selectDay(day) {
+  const total = totalDaysOf(activeCat, activeLevel);
+  const p = catProgress(activeCat, activeLevel);
   const unlocked = Math.min(total, (p.completed_days.length ? Math.max(...p.completed_days) + 1 : 1));
   if (day > unlocked) { showToast('Selesaikan hari sebelumnya dulu', 'error'); return; }
   activeDay = day;
   flipped = new Set();
   quizState = null;
-  if (rerenderCats) renderCats();
   await Promise.all([renderDay(), renderQuiz()]);
 }
 
 async function renderDay() {
-  const total = totalDaysOf(activeCat);
-  const p = catProgress(activeCat);
+  const total = totalDaysOf(activeCat, activeLevel);
+  const p = catProgress(activeCat, activeLevel);
   const unlocked = Math.min(total, (p.completed_days.length ? Math.max(...p.completed_days) + 1 : 1));
-  $('#latihanStat').textContent = `Hari ${activeDay} dari ${total} • ${p.completed_days.length} hari selesai • ${p.completed_days.length * 5} kata dihafal`;
-  $('#latihanBar').style.width = `${(p.completed_days.length / total) * 100}%`;
+  $('#latihanStat').textContent = `Hari ${activeDay}/${total} • ${p.completed_days.length * 5} kata`;
+  $('#latihanBar').style.width = `${total ? (p.completed_days.length / total) * 100 : 0}%`;
 
   let chips = '';
   for (let d = 1; d <= total; d++) {
@@ -179,7 +314,7 @@ async function renderDay() {
   $('#dayChips').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => selectDay(parseInt(b.dataset.day))));
 
   try {
-    const data = await apiRequest(`/lessons/${activeCat}/${activeDay}`);
+    const data = await apiRequest(`/lessons/${activeCat}/${activeLevel}/${activeDay}`);
     $('#dayTitle').textContent = `Kata Hari ${data.day}`;
     $('#flashList').innerHTML = data.words.map((w, i) => `
       <div class="flash ${flipped.has(i) ? 'flipped' : ''}" data-i="${i}">
@@ -195,10 +330,11 @@ async function renderDay() {
     }));
 
     const done = p.completed_days.includes(activeDay);
+    const lvName = levelOf(activeCat, activeLevel)?.title || '';
     $('#dayAction').innerHTML = done
-      ? `<p class="note">✓ Hari ini sudah selesai. Kamu bisa mengulang kartu atau lanjut ke hari ${Math.min(total, activeDay + 1)}.</p>`
+      ? `<p class="note">✓ Sudah kamu hafalkan. Ketuk kartu buat baca ulang.</p>${p.completed_days.length >= total ? `<p class="note">🎉 Level ${escapeHtml(lvName)} selesai!</p>` : ''}`
       : (activeDay === unlocked
-        ? `<button class="btn btn-primary" id="doneBtn">Tandai Hari Ini Selesai</button>`
+        ? `<button class="btn btn-primary" id="doneBtn">Tandai Hari Ini Selesai & Lanjut ✓</button>`
         : `<p class="note">Hari ini sudah terbuka untuk diulang.</p>`);
     $('#doneBtn')?.addEventListener('click', completeToday);
   } catch (err) { $('#flashList').innerHTML = `<p class="note">${escapeHtml(err.message)}</p>`; }
@@ -206,11 +342,44 @@ async function renderDay() {
 
 async function completeToday() {
   try {
-    const updated = await apiRequest(`/progress/${activeCat}/complete`, { method: 'POST', body: JSON.stringify({ day: activeDay }) });
-    progressMap[activeCat] = updated;
-    showToast(`Hari ${activeDay} selesai! 🎉`);
-    renderCats();
-    await selectDay(updated.current_day);
+    const finishedDay = activeDay;
+    const updated = await apiRequest(`/progress/${activeCat}/${activeLevel}/complete`, { method: 'POST', body: JSON.stringify({ day: activeDay }) });
+    progressMap[pkey(activeCat, activeLevel)] = updated;
+    // refresh agar status unlock level berikutnya kebaca
+    await loadLessonCats(); await loadProgress();
+    const total = totalDaysOf(activeCat, activeLevel);
+    if (updated.completed_days.length >= total) {
+      // Level tuntas → otomatis masuk level berikutnya bila sudah kebuka
+      const order = (catOf(activeCat)?.levels || []).map((l) => l.id);
+      const next = order.slice(order.indexOf(activeLevel) + 1).find((id) => levelOf(activeCat, id)?.unlocked);
+      renderSelectors();
+      if (next) {
+        activeLevel = next;
+        saveLastPos();
+        renderSelectors();
+        await selectDay(1);
+        showToast(`🎉 Level selesai! Otomatis lanjut ke ${levelOf(activeCat, next)?.title}`);
+      } else {
+        await selectDay(updated.current_day);
+        showToast('🎉 Semua level kategori ini tuntas! Hebat!');
+      }
+    } else {
+      renderSelectors();
+      await selectDay(updated.current_day);
+      showToast(`Hari ${finishedDay} selesai! Lanjut hari ${updated.current_day} 🎉`);
+    }
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+async function resetLevelProgress() {
+  if (!confirm('Yakin mau hapus progres level ini?')) return;
+  try {
+    const updated = await apiRequest(`/progress/${activeCat}/${activeLevel}/reset`, { method: 'DELETE' });
+    progressMap[pkey(activeCat, activeLevel)] = updated;
+    await loadLessonCats(); await loadProgress();
+    renderSelectors();
+    await selectDay(1);
+    showToast('Progres level direset');
   } catch (err) { showToast(err.message, 'error'); }
 }
 
@@ -241,7 +410,7 @@ async function startQuiz() {
   const box = $('#quizBox');
   box.innerHTML = `<p class="note">Memuat soal...</p>`;
   try {
-    const data = await apiRequest(`/lessons/${activeCat}/quiz?day=${activeDay}`);
+    const data = await apiRequest(`/lessons/${activeCat}/${activeLevel}/quiz?day=${activeDay}`);
     if (!data.questions.length) { box.innerHTML = `<p class="note">${escapeHtml(data.message || 'Belum ada materi review.')}</p><button class="btn btn-outline" id="backQ">Kembali</button>`; $('#backQ').addEventListener('click', () => renderQuiz()); return; }
     quizState = { questions: data.questions, idx: 0, answers: [], done: false };
     renderQuiz(false);
@@ -257,7 +426,7 @@ async function answerQuiz(optIdx) {
   if (quizState.idx >= quizState.questions.length) {
     // submit ke server — skor dihitung server
     try {
-      const res = await apiRequest('/practice/submit', { method: 'POST', body: JSON.stringify({ category: activeCat, day: activeDay, quiz_type: 'review', answers: quizState.answers }) });
+      const res = await apiRequest('/practice/submit', { method: 'POST', body: JSON.stringify({ category: activeCat, level: activeLevel, day: activeDay, quiz_type: 'review', answers: quizState.answers }) });
       quizState.done = true; quizState.score = res.score; quizState.total = res.total; quizState.percentage = res.percentage; quizState.graded = res.graded;
       showToast(`Nilai: ${res.score}/${res.total} (${res.percentage}%)`);
     } catch (err) { showToast(err.message, 'error'); quizState = null; }
@@ -341,10 +510,11 @@ async function loadReport() {
 
     const passAvg = stats.avgScore >= 70;
     const totalDoneDays = stats.categories.reduce((s, c) => s + c.completed_days.length, 0);
-    $('#taskStatus').innerHTML = totalDoneDays >= 40 && passAvg
-      ? `<span class="badge pass">🎉 TUGAS SELESAI — 40 hari + rata-rata ${stats.avgScore}</span>`
-      : `<span class="badge ${passAvg ? 'pass' : 'fail'}">${passAvg ? '✅ Rata-rata lulus (≥70)' : '⚠️ Rata-rata belum 70'} • ${totalDoneDays}/40 hari selesai</span>
-         <p class="note">Patokan: selesaikan 20 hari × 2 kategori + jaga rata-rata kuis ≥ 70.</p>`;
+    const totalAllDays = lessonCats.reduce((s, c) => s + (c.totalDays || (c.levels || []).reduce((a, l) => a + l.totalDays, 0)), 0) || 64;
+    $('#taskStatus').innerHTML = totalDoneDays >= totalAllDays && passAvg
+      ? `<span class="badge pass">🎉 TUGAS SELESAI — ${totalAllDays} hari + rata-rata ${stats.avgScore}</span>`
+      : `<span class="badge ${passAvg ? 'pass' : 'fail'}">${passAvg ? '✅ Rata-rata lulus (≥70)' : '⚠️ Rata-rata belum 70'} • ${totalDoneDays}/${totalAllDays} hari selesai</span>
+         <p class="note">Patokan: selesaikan Basic 20 + Middle 6 + Expert 6 per kategori + jaga rata-rata kuis ≥ 70.</p>`;
 
     $('#dailyBars').innerHTML = daily.length ? daily.slice(0, 7).reverse().map((d) => {
       const color = d.avg_score >= 70 ? '#2F8F5B' : '#C98A1B';
@@ -357,7 +527,7 @@ async function loadReport() {
       : '<tr><td colspan="5" style="text-align:center;color:#999">Belum ada data</td></tr>';
 
     $('#historyList').innerHTML = history.length ? history.map((h) => `
-      <p class="note">[${escapeHtml(h.created_at?.slice(0, 16).replace('T', ' ') || '')}] <b>${escapeHtml(h.category)}</b> hari ${h.day} — <b>${h.score}/${h.total} (${h.percentage}%)</b></p>`).join('')
+      <p class="note">[${escapeHtml(h.created_at?.slice(0, 16).replace('T', ' ') || '')}] <b>${escapeHtml(h.category)} • ${escapeHtml(h.level || 'basic')}</b> hari ${h.day} — <b>${h.score}/${h.total} (${h.percentage}%)</b></p>`).join('')
       : '<p class="note">Belum ada riwayat.</p>';
 
     const sel = $('#reportCat');
@@ -372,6 +542,10 @@ async function loadReport() {
 $('#loginForm').addEventListener('submit', handleLogin);
 $('#registerForm').addEventListener('submit', handleRegister);
 $('#authToggle').addEventListener('click', () => switchAuthMode(!$('#loginForm').classList.contains('hidden')));
+$('#forgotToggle')?.addEventListener('click', () => showForgot(true));
+$('#forgotBack')?.addEventListener('click', () => showForgot(false));
+$('#forgotForm')?.addEventListener('submit', handleForgot);
+$('#changeForm')?.addEventListener('submit', handleChangePassword);
 $('#logoutBtn').addEventListener('click', () => { clearAuth(); showToast('Sudah logout'); });
 $('#openModalBtn').addEventListener('click', () => openModal());
 $('#closeModal').addEventListener('click', closeModal);
@@ -380,9 +554,16 @@ $('#vocabForm').addEventListener('submit', saveVocab);
 $('#searchInput').addEventListener('input', debounce(loadVocab, 300));
 $('#categoryFilter').addEventListener('change', loadVocab);
 $('#reportCat').addEventListener('change', loadReport);
+$('#resetLevelBtn')?.addEventListener('click', resetLevelProgress);
 $('#vocabModal').addEventListener('click', (e) => { if (e.target === $('#vocabModal')) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
 if (authToken) {
-  apiRequest('/auth/me').then((d) => { localStorage.setItem('email', d.user.email); updateUIForAuth(); }).catch(() => clearAuth());
+  mustChangePassword = localStorage.getItem('mustChange') === '1';
+  apiRequest('/auth/me').then((d) => {
+    localStorage.setItem('email', d.user.email);
+    mustChangePassword = !!d.user.mustChangePassword;
+    localStorage.setItem('mustChange', mustChangePassword ? '1' : '0');
+    updateUIForAuth();
+  }).catch(() => clearAuth());
 } else updateUIForAuth();

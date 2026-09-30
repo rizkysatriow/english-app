@@ -36,10 +36,15 @@
     .tab.active { background: #2F6F6B; color: white; border-color: #2F6F6B; }
     .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
     @media (max-width: 560px) { .cat-grid { grid-template-columns: 1fr; } }
-    .cat-card { border: 2px solid #DED6C3; border-radius: 12px; padding: 16px; cursor: pointer; background: white; text-align: left; font-family: inherit; }
-    .cat-card.active { border-color: #C98A1B; background: #FFFBEB; }
-    .cat-card strong { font-size: 16px; display: block; }
-    .cat-card span { color: #8A8371; font-size: 13px; }
+    .seg-label { font-size: 12px; font-weight: 700; color: #8A8371; text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 6px; }
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+    .seg-btn { flex: 1 1 auto; border: 1.5px solid #DED6C3; border-radius: 10px; padding: 9px 12px; background: white; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; color: #20232A; white-space: nowrap; }
+    .seg-btn small { display: block; font-size: 11.5px; font-weight: 400; color: #8A8371; }
+    .seg-btn.active { border-color: #2F6F6B; background: #2F6F6B; color: #fff; }
+    .seg-btn.active small { color: #D6E9E7; }
+    .seg-btn.locked { opacity: .45; cursor: not-allowed; }
+    .latihan-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .latihan-head h2 { margin: 0; }
     .stat-line { font-size: 13px; color: #8A8371; margin-bottom: 6px; }
     .bar { height: 8px; background: #DED6C3; border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
     .bar-fill { height: 100%; background: #C98A1B; transition: width .3s; }
@@ -116,6 +121,18 @@
           <div class="input-group"><label>Email</label><input type="email" id="email" required autocomplete="email"></div>
           <div class="input-group"><label>Password</label><input type="password" id="password" required autocomplete="current-password"></div>
           <button type="submit" class="btn btn-primary" style="width:100%" id="submitBtn">Masuk</button>
+          <p style="margin-top:10px;text-align:right;font-size:13px">
+            <button type="button" id="forgotToggle" style="background:none;border:none;color:#2F6F6B;cursor:pointer;text-decoration:underline">Lupa password?</button>
+          </p>
+        </form>
+        <form id="forgotForm" class="hidden">
+          <p class="note">Masukkan email akunmu. Password akan direset ke <b>user123</b>, lalu kamu <b>wajib ganti password</b> saat login.</p>
+          <div class="input-group"><label>Email</label><input type="email" id="forgotEmail" required autocomplete="email"></div>
+          <div id="forgotResult" class="alert alert-success hidden"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%" id="forgotBtn">Reset ke user123</button>
+          <p style="margin-top:10px;text-align:center;font-size:13px">
+            <button type="button" id="forgotBack" style="background:none;border:none;color:#2F6F6B;cursor:pointer;text-decoration:underline">Kembali ke login</button>
+          </p>
         </form>
         <form id="registerForm" class="hidden">
           <div class="input-group"><label>Email</label><input type="email" id="regEmail" required></div>
@@ -129,6 +146,19 @@
       </div>
     </div>
 
+    <div id="forceChangeSection" class="hidden">
+      <div class="card" style="border-color:#C98A1B">
+        <h2 style="margin-bottom:6px">🔒 Wajib Ganti Password</h2>
+        <p class="note">Kamu login pakai password reset <b>user123</b>. Demi keamanan, ganti dulu sebelum lanjut belajar.</p>
+        <div id="changeAlert" class="alert alert-error hidden"></div>
+        <form id="changeForm">
+          <div class="input-group"><label>Password lama (kosongkan bila habis reset)</label><input type="password" id="curPassword" autocomplete="current-password"></div>
+          <div class="input-group"><label>Password baru (min 8 karakter)</label><input type="password" id="newPassword" required minlength="8" autocomplete="new-password"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%" id="changeBtn">Ganti Password</button>
+        </form>
+      </div>
+    </div>
+
     <div id="appSection" class="hidden">
       <div class="tabs">
         <button class="tab active" data-tab="latihan">📝 Latihan</button>
@@ -139,15 +169,21 @@
       <!-- TAB LATIHAN -->
       <div id="tab-latihan">
         <div class="card">
-          <h2 style="margin-bottom:4px">Latihan Harian</h2>
-          <p class="note">Progres tersimpan di database — login di HP/laptop mana pun lanjut dari hari terakhir.</p>
-          <div class="cat-grid" id="catGrid"></div>
-          <p class="stat-line" id="latihanStat"></p>
-          <div class="bar"><div class="bar-fill" id="latihanBar" style="width:0%"></div></div>
+          <div class="latihan-head">
+            <h2>Latihan Harian</h2>
+            <span class="stat-line" id="latihanStat" style="margin:0"></span>
+          </div>
+          <div class="bar" style="margin-top:10px"><div class="bar-fill" id="latihanBar" style="width:0%"></div></div>
+          <div class="seg-label">Kategori</div>
+          <div class="seg" id="catSeg"></div>
+          <div class="seg-label">Level</div>
+          <div class="seg" id="levelSeg"></div>
+          <div class="seg-label" id="dayLabel">Hari</div>
           <div class="days" id="dayChips"></div>
           <h3 id="dayTitle" style="margin:6px 0 10px;font-size:15px"></h3>
           <div id="flashList"></div>
           <div id="dayAction" style="margin-top:8px"></div>
+          <button type="button" id="resetLevelBtn" style="background:none;border:none;color:#8A8371;font-size:12.5px;text-decoration:underline;padding:0;margin-top:18px;cursor:pointer">Reset progres level ini</button>
         </div>
         <div class="card">
           <h2 style="font-size:16px;margin-bottom:6px">🔁 Kuis Review</h2>
@@ -178,7 +214,7 @@
             <h2>📊 Report Nilai Harian</h2>
             <select id="reportCat" style="width:auto"><option value="">Semua kategori</option></select>
           </div>
-          <p class="note">Patokan tugas: <b>lulus jika rata-rata ≥ 70</b> dan selesaikan 20 hari per kategori.</p>
+          <p class="note">Patokan tugas: <b>lulus jika rata-rata ≥ 70</b> dan selesaikan semua hari (Basic 20 + Middle 6 + Expert 6 per kategori).</p>
           <div class="stats-grid">
             <div class="stat-card"><b id="stAttempts">0</b><span>Total latihan</span></div>
             <div class="stat-card"><b id="stAvg">0</b><span>Rata-rata nilai</span></div>

@@ -72,6 +72,7 @@ h2{font-size:15px;margin:6px 0 10px;font-weight:600;}
   padding:20px;margin-bottom:14px;background:var(--card);cursor:pointer;}
 .menu-card strong{font-family:Georgia,serif;font-size:19px;display:block;margin-bottom:4px;}
 .menu-card span{color:var(--muted);font-size:13.5px;}
+.menu-card:disabled{opacity:.45;cursor:not-allowed;}
 .backlink{background:none;border:none;color:var(--teal);font-size:13.5px;padding:0;
   margin-bottom:14px;cursor:pointer;text-decoration:underline;}
 </style>
@@ -80,7 +81,8 @@ h2{font-size:15px;margin:6px 0 10px;font-weight:600;}
 <div class="wrap" id="app"></div>
 <script>
 const VOCAB={
-kerja:[
+kerja:{
+basic:[
 [["deadline","tenggat waktu","We must finish before the deadline.","Kita harus selesai sebelum tenggat waktu."],["schedule","jadwal","Check your schedule for today.","Cek jadwal kamu hari ini."],["meeting","rapat","The meeting starts at nine.","Rapatnya mulai jam sembilan."],["task","tugas","Please finish this task today.","Tolong selesaikan tugas ini hari ini."],["colleague","rekan kerja","My colleague helped me today.","Rekan kerja saya membantu saya hari ini."]],
 [["report","laporan","Send the report by email.","Kirim laporannya lewat email."],["email","surel","I will email you the file.","Saya akan mengirim file itu lewat email."],["message","pesan","She left a message for you.","Dia meninggalkan pesan untuk kamu."],["reply","balas","Please reply before noon.","Tolong balas sebelum siang."],["forward","teruskan","Can you forward this email?","Bisa tolong teruskan email ini?"]],
 [["attend","menghadiri","I will attend the meeting.","Saya akan menghadiri rapat."],["cancel","membatalkan","We had to cancel the trip.","Kami harus membatalkan perjalanan itu."],["postpone","menunda","Let's postpone the call.","Ayo kita tunda teleponnya."],["reschedule","menjadwalkan ulang","Can we reschedule to Friday?","Bisa kita jadwalkan ulang ke hari Jumat?"],["confirm","mengonfirmasi","Please confirm your attendance.","Tolong konfirmasi kehadiran kamu."]],
@@ -102,7 +104,25 @@ kerja:[
 [["request","permintaan","Please send your request today.","Tolong kirim permintaan kamu hari ini."],["require","memerlukan","This job requires good English.","Pekerjaan ini memerlukan bahasa Inggris yang baik."],["provide","menyediakan","We provide full training.","Kami menyediakan pelatihan lengkap."],["offer","menawarkan","They offered me a new role.","Mereka menawarkan saya peran baru."],["deliver","mengirimkan","We will deliver it tomorrow.","Kami akan mengirimkannya besok."]],
 [["approve","menyetujui","My boss approved the plan.","Bos saya menyetujui rencananya."],["reject","menolak","They rejected our proposal.","Mereka menolak proposal kita."],["permission","izin","I need permission to leave early.","Saya perlu izin untuk pulang lebih awal."],["allow","mengizinkan","We allow flexible working hours.","Kami mengizinkan jam kerja yang fleksibel."],["decision","keputusan","This is an important decision.","Ini adalah keputusan yang penting."]]
 ],
-harian:[
+middle:[
+[["negotiate","bernegosiasi","We need to negotiate the price.","Kita perlu bernegosiasi soal harganya."],["proposal","proposal","She submitted a new proposal.","Dia mengajukan proposal baru."],["stakeholder","pemangku kepentingan","All stakeholders must agree first.","Semua pemangku kepentingan harus setuju dulu."],["collaborate","berkolaborasi","Our teams collaborate on this project.","Tim kita berkolaborasi dalam proyek ini."],["compromise","berkompromi","We had to compromise on the budget.","Kami harus berkompromi soal anggaran."]],
+[["strategy","strategi","We need a new marketing strategy.","Kita butuh strategi pemasaran baru."],["implement","menerapkan","We will implement this policy next month.","Kami akan menerapkan kebijakan ini bulan depan."],["evaluate","mengevaluasi","Let's evaluate the results together.","Ayo kita evaluasi hasilnya bersama."],["analyze","menganalisis","Please analyze this data carefully.","Tolong analisis data ini dengan teliti."],["outcome","hasil akhir","The outcome was better than expected.","Hasil akhirnya lebih baik dari perkiraan."]],
+[["efficient","efisien","This new system is more efficient.","Sistem baru ini lebih efisien."],["productivity","produktivitas","We must improve team productivity.","Kita harus meningkatkan produktivitas tim."],["workload","beban kerja","My workload is very heavy this week.","Beban kerja saya sangat berat minggu ini."],["delegate","mendelegasikan","You should delegate some tasks.","Kamu sebaiknya mendelegasikan beberapa tugas."],["prioritize","memprioritaskan","We need to prioritize urgent tasks.","Kita perlu memprioritaskan tugas mendesak."]],
+[["conflict","konflik","There was a conflict between two teams.","Ada konflik antara dua tim."],["resolve","menyelesaikan","We resolved the issue quickly.","Kami menyelesaikan masalahnya dengan cepat."],["constructive","membangun","Please give constructive feedback.","Tolong berikan masukan yang membangun."],["criticism","kritik","He handled the criticism well.","Dia menanggapi kritik dengan baik."],["consensus","kesepakatan bersama","We reached a consensus finally.","Akhirnya kami mencapai kesepakatan bersama."]],
+[["initiative","inisiatif","She took the initiative to fix it.","Dia mengambil inisiatif untuk memperbaikinya."],["innovative","inovatif","We need more innovative ideas.","Kita butuh lebih banyak ide inovatif."],["adapt","beradaptasi","Our team adapted quickly to change.","Tim kami cepat beradaptasi dengan perubahan."],["flexible","fleksibel","Our schedule is quite flexible.","Jadwal kita cukup fleksibel."],["versatile","serbaguna","She is a versatile employee.","Dia karyawan yang serbaguna."]],
+[["performance","kinerja","My performance improved this quarter.","Kinerja saya membaik kuartal ini."],["appraisal","penilaian kinerja","My appraisal is next week.","Penilaian kinerja saya minggu depan."],["promotion","promosi jabatan","She got a promotion last month.","Dia dapat promosi jabatan bulan lalu."],["raise","kenaikan gaji","I asked my boss for a raise.","Saya minta kenaikan gaji ke bos saya."],["benefits","tunjangan","The company offers good benefits.","Perusahaan ini menawarkan tunjangan yang bagus."]]
+],
+expert:[
+[["leverage","memanfaatkan","We should leverage our strengths.","Kita harus memanfaatkan kekuatan kita."],["synergy","sinergi","There is good synergy between teams.","Ada sinergi yang baik antar tim."],["streamline","menyederhanakan","We streamlined the whole process.","Kami menyederhanakan seluruh prosesnya."],["benchmark","tolok ukur","This report is our benchmark.","Laporan ini jadi tolok ukur kita."],["scalable","dapat diskalakan","Our solution needs to be scalable.","Solusi kita harus bisa diskalakan."]],
+[["mitigate","mengurangi risiko","We must mitigate this risk.","Kita harus mengurangi risiko ini."],["contingency","rencana cadangan","We need a contingency plan.","Kita perlu rencana cadangan."],["compliance","kepatuhan","Compliance with the law is required.","Kepatuhan pada hukum itu wajib."],["liability","tanggung jawab hukum","The company avoided legal liability.","Perusahaan menghindari tanggung jawab hukum."],["due diligence","uji tuntas","We did due diligence before investing.","Kami melakukan uji tuntas sebelum berinvestasi."]],
+[["forecast","perkiraan","Our sales forecast looks positive.","Perkiraan penjualan kita terlihat positif."],["projection","proyeksi","This is our revenue projection.","Ini adalah proyeksi pendapatan kita."],["volatile","tidak stabil","The market is very volatile now.","Pasarnya sangat tidak stabil sekarang."],["sustainable","berkelanjutan","We aim for sustainable growth.","Kami menargetkan pertumbuhan yang berkelanjutan."],["disrupt","mengubah drastis","This technology will disrupt the industry.","Teknologi ini akan mengubah industri secara drastis."]],
+[["shareholder","pemegang saham","Shareholders approved the merger.","Pemegang saham menyetujui merger itu."],["merger","penggabungan perusahaan","The merger was finalized today.","Penggabungan perusahaan itu selesai hari ini."],["acquisition","akuisisi","They announced a new acquisition.","Mereka mengumumkan akuisisi baru."],["portfolio","portofolio","Diversify your investment portfolio.","Diversifikasikan portofolio investasi kamu."],["equity","ekuitas","The startup raised equity funding.","Startup itu mendapat pendanaan ekuitas."]],
+[["KPI","indikator kinerja utama","We track KPIs every month.","Kami memantau KPI setiap bulan."],["ROI","laba atas investasi","This project has strong ROI.","Proyek ini punya ROI yang kuat."],["overhead","biaya operasional","We reduced our overhead costs.","Kami mengurangi biaya operasional kami."],["procurement","pengadaan","The procurement process takes time.","Proses pengadaan memakan waktu."],["outsource","mengalihdayakan","We outsource our IT support.","Kami mengalihdayakan dukungan IT kami."]],
+[["transparency","transparansi","We value transparency in reporting.","Kami menghargai transparansi dalam pelaporan."],["integrity","integritas","He is known for his integrity.","Dia dikenal karena integritasnya."],["credibility","kredibilitas","This builds our credibility.","Ini membangun kredibilitas kita."],["diligence","ketekunan","Her diligence paid off.","Ketekunannya membuahkan hasil."],["proactive","proaktif","Be proactive, not reactive.","Jadilah proaktif, bukan reaktif."]]
+]
+},
+harian:{
+basic:[
 [["must","harus","You must finish this today.","Kamu harus menyelesaikan ini hari ini."],["should","sebaiknya","You should rest now.","Kamu sebaiknya istirahat sekarang."],["have to","harus","I have to go now.","Saya harus pergi sekarang."],["need to","perlu","We need to talk.","Kita perlu bicara."],["want to","ingin","I want to learn English.","Saya ingin belajar bahasa Inggris."]],
 [["can","bisa","I can help you.","Saya bisa membantu kamu."],["could","bisa (sopan)","Could you help me?","Bisakah kamu membantu saya?"],["will","akan","I will call you later.","Saya akan menelepon kamu nanti."],["would","akan (andai)","I would love that.","Saya akan sangat suka itu."],["might","mungkin","It might rain today.","Mungkin hari ini akan hujan."]],
 [["let's","ayo kita","Let's go now.","Ayo kita pergi sekarang."],["please","tolong","Please close the door.","Tolong tutup pintunya."],["sorry","maaf","Sorry, I'm late.","Maaf, saya terlambat."],["excuse me","permisi","Excuse me, where is the toilet?","Permisi, di mana toiletnya?"],["thanks","terima kasih","Thanks for your help.","Terima kasih atas bantuannya."]],
@@ -123,44 +143,82 @@ harian:[
 [["shopping","belanja","I go shopping on weekends.","Saya belanja di akhir pekan."],["price","harga","The price went up recently.","Harganya baru-baru ini naik."],["discount","diskon","We got a nice discount.","Kami dapat diskon yang bagus."],["receipt","struk","Please keep your receipt.","Tolong simpan struk kamu."],["purchase","pembelian","This was a smart purchase.","Ini adalah pembelian yang pintar."]],
 [["travel","bepergian","I travel for work often.","Saya sering bepergian untuk kerja."],["journey","perjalanan","It was a long journey.","Itu adalah perjalanan yang panjang."],["destination","tujuan","Bali is a popular destination.","Bali adalah tujuan wisata yang populer."],["luggage","bagasi","Please check your luggage first.","Tolong cek bagasi kamu dulu."],["ticket","tiket","I booked my ticket online.","Saya memesan tiket saya secara online."]],
 [["achievement","pencapaian","This award is a great achievement.","Penghargaan ini adalah pencapaian yang hebat."],["confidence","kepercayaan diri","Practice builds your confidence.","Latihan membangun kepercayaan diri kamu."],["motivation","motivasi","Keep your motivation high.","Jaga motivasi kamu tetap tinggi."],["patience","kesabaran","Learning needs a lot of patience.","Belajar butuh banyak kesabaran."],["gratitude","rasa syukur","I feel gratitude for this journey.","Saya merasa bersyukur atas perjalanan ini."]]
+],
+middle:[
+[["appreciate","menghargai","I really appreciate your help.","Saya sangat menghargai bantuanmu."],["prefer","lebih suka","I prefer tea over coffee.","Saya lebih suka teh daripada kopi."],["mention","menyebutkan","She mentioned it yesterday.","Dia menyebutkannya kemarin."],["assume","mengasumsikan","Don't assume, just ask.","Jangan berasumsi, tanya saja."],["realize","menyadari","I realized my mistake later.","Saya menyadari kesalahan saya belakangan."]],
+[["convenient","praktis","This app is very convenient.","Aplikasi ini sangat praktis."],["comfortable","nyaman","This chair is comfortable.","Kursi ini nyaman."],["exhausted","kelelahan","I'm exhausted after the trip.","Saya kelelahan setelah perjalanan itu."],["frustrated","frustrasi","She felt frustrated with the delay.","Dia merasa frustrasi dengan keterlambatan itu."],["relieved","lega","I felt relieved after the exam.","Saya merasa lega setelah ujian."]],
+[["neighborhood","lingkungan sekitar","This is a quiet neighborhood.","Ini lingkungan yang tenang."],["atmosphere","suasana","The cafe has a nice atmosphere.","Kafenya punya suasana yang enak."],["crowded","ramai","The mall was very crowded.","Mal itu sangat ramai."],["spacious","luas","Their house is quite spacious.","Rumah mereka cukup luas."],["cozy","hangat dan nyaman","The room feels cozy.","Ruangannya terasa hangat dan nyaman."]],
+[["occasion","acara khusus","We dressed up for the occasion.","Kami berdandan untuk acara itu."],["celebrate","merayakan","We celebrate birthdays every year.","Kami merayakan ulang tahun setiap tahun."],["tradition","tradisi","This is a family tradition.","Ini adalah tradisi keluarga."],["custom","adat kebiasaan","It's a local custom here.","Ini adalah adat setempat di sini."],["gathering","kumpul-kumpul","We had a family gathering.","Kami mengadakan kumpul keluarga."]],
+[["apologize","meminta maaf","He apologized for being late.","Dia meminta maaf karena terlambat."],["forgive","memaafkan","Please forgive my mistake.","Tolong maafkan kesalahan saya."],["complain","mengeluh","She complained about the noise.","Dia mengeluh soal keributannya."],["compliment","memuji","He complimented my cooking.","Dia memuji masakan saya."],["encourage","menyemangati","My friend encouraged me to try.","Teman saya menyemangati saya untuk mencoba."]],
+[["value","nilai","This product has good value.","Produk ini punya nilai yang bagus."],["worth","sepadan","Is it worth the price?","Apakah itu sepadan dengan harganya?"],["bargain","barang murah","I found a great bargain today.","Saya menemukan barang murah bagus hari ini."],["refund","pengembalian dana","I asked for a refund.","Saya meminta pengembalian dana."],["warranty","garansi","This laptop has a two-year warranty.","Laptop ini punya garansi dua tahun."]]
+],
+expert:[
+[["nostalgic","rindu masa lalu","This song makes me nostalgic.","Lagu ini membuat saya nostalgia."],["overwhelmed","kewalahan","I feel overwhelmed with work.","Saya merasa kewalahan dengan pekerjaan."],["ambivalent","ragu-ragu","I'm ambivalent about the plan.","Saya ragu-ragu soal rencana itu."],["content","puas","She seems content with her life.","Dia terlihat puas dengan hidupnya."],["empathy","empati","Try to show more empathy.","Coba tunjukkan lebih banyak empati."]],
+[["perseverance","pantang menyerah","Her perseverance inspired everyone.","Ketekunannya menginspirasi semua orang."],["resilience","ketahanan mental","He showed great resilience.","Dia menunjukkan ketahanan mental yang hebat."],["humility","kerendahan hati","She spoke with humility.","Dia berbicara dengan kerendahan hati."],["sincerity","ketulusan","I admire his sincerity.","Saya mengagumi ketulusannya."],["compassion","belas kasih","Show compassion to others.","Tunjukkan belas kasih pada orang lain."]],
+[["procrastinate","menunda-nunda","Stop procrastinating and start now.","Berhenti menunda-nunda dan mulai sekarang."],["meticulous","teliti","She is very meticulous with details.","Dia sangat teliti dengan detail."],["spontaneous","spontan","He made a spontaneous decision.","Dia membuat keputusan yang spontan."],["ambitious","ambisius","She has ambitious goals.","Dia punya tujuan yang ambisius."],["cautious","hati-hati","Be cautious when driving at night.","Hati-hati saat menyetir malam hari."]],
+[["coincidence","kebetulan","What a strange coincidence!","Kebetulan yang aneh sekali!"],["assumption","asumsi","Don't make assumptions too fast.","Jangan membuat asumsi terlalu cepat."],["perspective","sudut pandang","Try to see her perspective.","Coba lihat dari sudut pandangnya."],["dilemma","dilema","I'm facing a difficult dilemma.","Saya menghadapi dilema yang sulit."],["consequence","konsekuensi","Every action has a consequence.","Setiap tindakan punya konsekuensi."]],
+[["fulfillment","kepuasan batin","Her job gives her fulfillment.","Pekerjaannya memberi dia kepuasan batin."],["contentment","rasa cukup","He found contentment in simple things.","Dia menemukan rasa cukup dalam hal sederhana."],["solitude","kesendirian","I enjoy some solitude sometimes.","Saya menikmati kesendirian sesekali."],["serenity","ketenangan","The lake gave a sense of serenity.","Danau itu memberi rasa ketenangan."],["mindfulness","kesadaran penuh","Practice mindfulness every morning.","Latih kesadaran penuh setiap pagi."]],
+[["obligation","kewajiban","I feel an obligation to help.","Saya merasa punya kewajiban untuk membantu."],["commitment","komitmen","Marriage needs strong commitment.","Pernikahan butuh komitmen yang kuat."],["reluctant","enggan","He was reluctant to leave.","Dia enggan untuk pergi."],["hesitant","ragu-ragu","She seemed hesitant to answer.","Dia terlihat ragu-ragu untuk menjawab."],["inevitable","tak terelakkan","Change is often inevitable.","Perubahan sering kali tak terelakkan."]]
 ]
+}
 };
 const LABELS={kerja:{title:"Kerja & Meeting",emoji:"💼"},harian:{title:"Kehidupan Sehari-hari",emoji:"🌤️"}};
+const LEVEL_NAMES={basic:"Basic",middle:"Middle",expert:"Expert"};
 
-let category=null;
+let category=null,level=null;
 let completed=[],unlocked=1,selDay=1,flipped=new Set(),quiz=null;
 
-function storageKey(){return 'vocabProgress_'+category;}
-function loadCompleted(){try{const a=JSON.parse(localStorage.getItem(storageKey())||'[]');const len=VOCAB[category].length;return Array.isArray(a)?a.filter(n=>n>=1&&n<=len):[];}catch(e){return [];}}
-function saveCompleted(){try{localStorage.setItem(storageKey(),JSON.stringify(completed));}catch(e){}}
+function progKey(cat,lv){return 'vocabProgress_'+cat+'_'+lv;}
+function getProgress(cat,lv){try{const a=JSON.parse(localStorage.getItem(progKey(cat,lv))||'[]');const len=VOCAB[cat][lv].length;return Array.isArray(a)?a.filter(n=>n>=1&&n<=len):[];}catch(e){return [];}}
+function saveCompleted(){try{localStorage.setItem(progKey(category,level),JSON.stringify(completed));}catch(e){}}
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function isLevelUnlocked(cat,lv){if(lv==='basic')return true;if(lv==='middle')return getProgress(cat,'basic').length>=VOCAB[cat].basic.length;if(lv==='expert')return getProgress(cat,'middle').length>=VOCAB[cat].middle.length;return false;}
 
-function chooseCategory(cat){category=cat;completed=loadCompleted();const len=VOCAB[category].length;unlocked=completed.length?Math.min(len,Math.max(...completed)+1):1;selDay=unlocked;flipped=new Set();quiz=null;render();}
-function backToMenu(){category=null;render();}
+function chooseCategory(cat){category=cat;level=null;render();}
+function backToCategoryMenu(){category=null;level=null;render();}
+function chooseLevel(lv){if(!isLevelUnlocked(category,lv))return;level=lv;completed=getProgress(category,level);const len=VOCAB[category][level].length;unlocked=completed.length?Math.min(len,Math.max(...completed)+1):1;selDay=unlocked;flipped=new Set();quiz=null;render();}
+function backToLevelMenu(){level=null;render();}
 function selectDay(d){if(d>unlocked)return;selDay=d;flipped=new Set();quiz=null;render();}
 function flip(i){flipped.has(i)?flipped.delete(i):flipped.add(i);render();}
-function completeToday(){const len=VOCAB[category].length;if(!completed.includes(selDay)){completed.push(selDay);saveCompleted();unlocked=Math.min(len,Math.max(...completed)+1);}render();}
-function getPool(){const V=VOCAB[category];const days=[selDay-1,selDay-2].filter(d=>d>=1&&completed.includes(d));let w=[];days.forEach(d=>w.push(...V[d-1]));return w;}
-function startQuiz(){const V=VOCAB[category];const ALL=V.flat();const pool=getPool();if(pool.length===0)return;const qCount=Math.min(5,pool.length);const chosen=shuffle(pool).slice(0,qCount);const questions=chosen.map(w=>{const distractors=shuffle(ALL.filter(x=>x[0]!==w[0])).slice(0,3).map(x=>x[1]);const opts=shuffle([w[1],...distractors]);return {en:w[0],correct:w[1],opts};});quiz={questions,idx:0,score:0,answered:false,selectedIdx:null,done:false};render();}
+function completeToday(){const len=VOCAB[category][level].length;if(!completed.includes(selDay)){completed.push(selDay);saveCompleted();unlocked=Math.min(len,Math.max(...completed)+1);}render();}
+function getPool(){const V=VOCAB[category][level];const days=[selDay-1,selDay-2].filter(d=>d>=1&&completed.includes(d));let w=[];days.forEach(d=>w.push(...V[d-1]));return w;}
+function startQuiz(){const V=VOCAB[category][level];const ALL=V.flat();const pool=getPool();if(pool.length===0)return;const qCount=Math.min(5,pool.length);const chosen=shuffle(pool).slice(0,qCount);const questions=chosen.map(w=>{const distractors=shuffle(ALL.filter(x=>x[0]!==w[0])).slice(0,3).map(x=>x[1]);const opts=shuffle([w[1],...distractors]);return {en:w[0],correct:w[1],opts};});quiz={questions,idx:0,score:0,answered:false,selectedIdx:null,done:false};render();}
 function answerQuiz(i){if(quiz.answered)return;quiz.answered=true;quiz.selectedIdx=i;const q=quiz.questions[quiz.idx];if(q.opts[i]===q.correct)quiz.score++;render();setTimeout(()=>{quiz.idx++;quiz.answered=false;quiz.selectedIdx=null;if(quiz.idx>=quiz.questions.length)quiz.done=true;render();},900);}
-function resetProgress(){if(!confirm('Yakin mau hapus progres kategori ini?'))return;completed=[];try{localStorage.removeItem(storageKey());}catch(e){}unlocked=1;selDay=1;flipped=new Set();quiz=null;render();}
+function resetProgress(){if(!confirm('Yakin mau hapus progres level ini?'))return;completed=[];try{localStorage.removeItem(progKey(category,level));}catch(e){}unlocked=1;selDay=1;flipped=new Set();quiz=null;render();}
 
-function renderMenu(){
+function renderCategoryMenu(){
   document.getElementById('app').innerHTML=`
     <h1>Vocab Harian</h1>
-    <p class="sub">Pilih mau hafalin kosakata buat apa dulu. Progres tiap kategori kesimpen terpisah.</p>
-    <button class="menu-card" onclick="chooseCategory('kerja')"><strong>💼 Kerja &amp; Meeting</strong><span>20 hari kosakata kantor &amp; rapat</span></button>
-    <button class="menu-card" onclick="chooseCategory('harian')"><strong>🌤️ Kehidupan Sehari-hari</strong><span>20 hari kosakata dasar &amp; harian (termasuk kata dasar kayak must, should, dll)</span></button>
+    <p class="sub">Pilih mau hafalin kosakata buat apa dulu.</p>
+    <button class="menu-card" onclick="chooseCategory('kerja')"><strong>💼 Kerja &amp; Meeting</strong><span>Kosakata kantor &amp; rapat</span></button>
+    <button class="menu-card" onclick="chooseCategory('harian')"><strong>🌤️ Kehidupan Sehari-hari</strong><span>Kosakata dasar &amp; harian</span></button>
+  `;
+}
+function renderLevelMenu(){
+  const label=LABELS[category];
+  const rows=['basic','middle','expert'].map(lv=>{
+    const unlocked=isLevelUnlocked(category,lv);
+    const prog=getProgress(category,lv);
+    const total=VOCAB[category][lv].length;
+    const sub=unlocked?`${prog.length}/${total} hari selesai`:'Selesaikan level sebelumnya dulu';
+    return `<button class="menu-card" ${unlocked?'':'disabled'} onclick="chooseLevel('${lv}')"><strong>${LEVEL_NAMES[lv]}</strong><span>${sub}</span></button>`;
+  }).join('');
+  document.getElementById('app').innerHTML=`
+    <button class="backlink" onclick="backToCategoryMenu()">← Ganti kategori</button>
+    <h1>${label.emoji} ${label.title}</h1>
+    <p class="sub">Pilih level. Mulai dari Basic dulu ya, Middle &amp; Expert kebuka setelah level sebelumnya tuntas.</p>
+    ${rows}
   `;
 }
 function renderDetail(){
-  const V=VOCAB[category],len=V.length,label=LABELS[category];
+  const V=VOCAB[category][level],len=V.length,label=LABELS[category];
   const daysHTML=V.map((_,idx)=>{const d=idx+1;let cls='day-chip';if(completed.includes(d))cls+=' done';else if(d>unlocked)cls+=' locked';if(d===selDay)cls+=' current';return `<button class="${cls}" ${d>unlocked?'disabled':''} onclick="selectDay(${d})">${d}</button>`;}).join('');
   const words=V[selDay-1];
   const cardsHTML=words.map((w,i)=>`<div class="card ${flipped.has(i)?'flipped':''}" onclick="flip(${i})"><div class="card-inner"><div class="card-face"><strong>${w[0]}</strong><span>Ketuk buat lihat arti</span></div><div class="card-face card-back"><strong>${w[1]}</strong><span class="ex">${w[2]}</span><span class="ex-id">${w[3]}</span></div></div></div>`).join('');
   let actionHTML='';
   if(completed.includes(selDay)){actionHTML=`<p class="note">✓ Sudah kamu hafalkan. Ketuk kartu buat baca ulang.</p>`;}
   else if(selDay===unlocked){actionHTML=`<button class="btn btn-primary" onclick="completeToday()">Tandai Hari Ini Selesai</button>`;}
+  if(completed.length>=len){actionHTML+=`<p class="note">🎉 Level ${LEVEL_NAMES[level]} selesai! Level berikutnya (kalau ada) sudah kebuka di menu level.</p>`;}
   const poolLen=getPool().length;
   let quizHTML='';
   if(quiz&&!quiz.done){
@@ -172,8 +230,8 @@ function renderDetail(){
     quizHTML=poolLen>0?`<button class="btn btn-outline" onclick="startQuiz()">🔁 Mulai Kuis Review (${poolLen} kata dari hari kemarin/kemarin lusa)</button>`:`<p class="note">Kuis review buat ngulang kata kemarin &amp; kemarin lusa bakal muncul mulai hari ke-2.</p>`;
   }
   document.getElementById('app').innerHTML=`
-    <button class="backlink" onclick="backToMenu()">← Ganti kategori</button>
-    <h1>${label.emoji} ${label.title}</h1>
+    <button class="backlink" onclick="backToLevelMenu()">← Ganti level</button>
+    <h1>${label.emoji} ${label.title} • ${LEVEL_NAMES[level]}</h1>
     <p class="stat">Hari ${selDay} dari ${len} • ${completed.length} hari selesai • ${completed.length*5} kata dihafal</p>
     <div class="bar"><div class="bar-fill" style="width:${completed.length/len*100}%"></div></div>
     <div class="days">${daysHTML}</div>
@@ -183,10 +241,10 @@ function renderDetail(){
     <div class="divider"></div>
     <h2>Kuis Review</h2>
     ${quizHTML}
-    <button class="reset" onclick="resetProgress()">Reset progres kategori ini</button>
+    <button class="reset" onclick="resetProgress()">Reset progres level ini</button>
   `;
 }
-function render(){category===null?renderMenu():renderDetail();}
+function render(){if(category===null)renderCategoryMenu();else if(level===null)renderLevelMenu();else renderDetail();}
 render();
 </script>
 </body>
