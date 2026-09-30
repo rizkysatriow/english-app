@@ -58,6 +58,14 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Data semua user bersifat pribadi & berbeda per akun.
+// Larang cache (browser/proxy/tunnel) agar response user A tidak pernah disajikan ke user B.
+app.use('/api/', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/vocab', vocabRoutes);
 app.use('/api/lessons', lessonsRoutes);

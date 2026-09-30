@@ -32,8 +32,28 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 // ---------- auth ----------
+// Isolasi antar akun: SEMUA state user di-reset saat ganti sesi,
+// sehingga data user lama tidak pernah tampil sekilas pun di akun baru.
 let mustChangePassword = false;
+function resetClientState() {
+  currentUser = null;
+  lessonCats = [];
+  activeCat = 'kerja'; activeLevel = 'basic'; activeDay = 1;
+  progressMap = {};
+  flipped = new Set();
+  quizState = null;
+  currentVocabId = null;
+  for (const id of ['#flashList', '#dayChips', '#quizBox', '#vocabList', '#historyList', '#dailyBars', '#dailyTable']) {
+    const el = $(id);
+    if (el) el.innerHTML = '';
+  }
+  for (const id of ['#password', '#email', '#regEmail', '#regPassword', '#forgotEmail', '#curPassword', '#newPassword', '#searchInput']) {
+    const el = $(id);
+    if (el) el.value = '';
+  }
+}
 function setAuth(token, email, mustChange = false) {
+  resetClientState();
   authToken = token;
   localStorage.setItem('token', token);
   if (email) localStorage.setItem('email', email);
@@ -44,6 +64,7 @@ function setAuth(token, email, mustChange = false) {
 function clearAuth() {
   authToken = null; currentUser = null; mustChangePassword = false;
   localStorage.removeItem('token'); localStorage.removeItem('email'); localStorage.removeItem('mustChange');
+  resetClientState();
   updateUIForAuth();
 }
 function updateUIForAuth() {
@@ -80,10 +101,27 @@ function switchAuthMode(isRegister) {
 async function handleLogin(e) {
   e.preventDefault(); hideAlert($('#alert'));
   const btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'Masuk...';
+  const typedEmail = $('#email').value.trim().toLowerCase();
   try {
     const data = await apiRequest('/auth/login', { method: 'POST', body: JSON.stringify({ email: $('#email').value.trim(), password: $('#password').value }) });
     setAuth(data.token, data.user.email, data.user.mustChangePassword);
-    if (data.user.mustChangePassword) {
+    // Verifikasi identitas token: pastikan sesi yang dibuka benar-benar milik email ini.
+    try {
+      const me = await apiRequest('/auth/me');
+      if ((me.user?.email || '').toLowerCase() !== typedEmail) {
+        clearAuth();
+        showAlert($('#alert'), 'Sesi tidak cocok dengan akun. Silakan login ulang.');
+        return;
+      }
+      mustChangePassword = !!me.user?.mustChangePassword;
+      localStorage.setItem('mustChange', mustChangePassword ? '1' : '0');
+      updateUIForAuth();
+    } catch {
+      clearAuth();
+      showAlert($('#alert'), 'Gagal memverifikasi sesi. Silakan login ulang.');
+      return;
+    }
+    if (mustChangePassword) {
       showToast('Login pakai password reset — wajib ganti password dulu', 'error');
     } else {
       showToast('Selamat datang kembali!');
@@ -165,11 +203,24 @@ let quizState = null;
 
 function pkey(cat, lv) { return `${cat}__${lv}`; }
 
+// Posisi terakhir disimpan PER AKUN (suffixed email) agar user yang pinjam
+// perangkat yang sama tidak saling menimpa/membaca posisi belajar.
+function posKeys() {
+  const email = (localStorage.getItem('email') || 'anon').toLowerCase();
+  return { cat: `latCat:${email}`, level: `latLevel:${email}` };
+}
 function saveLastPos() {
   try {
-    if (activeCat) localStorage.setItem('latCat', activeCat);
-    if (activeLevel) localStorage.setItem('latLevel', activeLevel);
+    const k = posKeys();
+    if (activeCat) localStorage.setItem(k.cat, activeCat);
+    if (activeLevel) localStorage.setItem(k.level, activeLevel);
   } catch { /* abaikan */ }
+}
+function loadLastPos() {
+  try {
+    const k = posKeys();
+    return { cat: localStorage.getItem(k.cat), level: localStorage.getItem(k.level) };
+  } catch { return { cat: null, level: null }; }
 }
 
 // Level terbuka pertama yang belum tuntas (buat lanjut otomatis); kalau semua tuntas, level terbuka terakhir (buat review).
@@ -189,9 +240,9 @@ function continueCategory() {
 
 async function bootApp() {
   await Promise.all([loadLessonCats(), loadProgress(), loadVocab()]);
-  // Langsung masuk ke materi tanpa klik: pakai posisi terakhir, atau lanjutkan otomatis.
-  let cat = null, lv = null;
-  try { cat = localStorage.getItem('latCat'); lv = localStorage.getItem('latLevel'); } catch { /* abaikan */ }
+  // Langsung masuk ke materi tanpa klik: pakai posisi terakhir AKUN INI, atau lanjutkan otomatis.
+  const saved = loadLastPos();
+  const cat = saved.cat, lv = saved.level;
   if (cat && catOf(cat)) {
     activeCat = cat;
     const lvo = lv && levelOf(cat, lv);
