@@ -25,9 +25,10 @@ async function apiRequest(endpoint, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
   const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-  if (res.status === 204) return null;
+  if (res.status === 204) { if (authToken) touchSession(); return null; }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (authToken) touchSession();
   return data;
 }
 
@@ -35,6 +36,27 @@ async function apiRequest(endpoint, options = {}) {
 // Isolasi antar akun: SEMUA state user di-reset saat ganti sesi,
 // sehingga data user lama tidak pernah tampil sekilas pun di akun baru.
 let mustChangePassword = false;
+
+// Batas idle sesi: otomatis logout bila tidak ada aktivitas selama ini.
+const SESSION_IDLE_MS = 30 * 60 * 1000;
+let lastActivity = Date.now();
+function touchSession() {
+  lastActivity = Date.now();
+  try { localStorage.setItem('lastActive', String(lastActivity)); } catch { /* abaikan */ }
+}
+function sessionExpired() {
+  return Date.now() - lastActivity > SESSION_IDLE_MS;
+}
+// Bersihkan SEMUA cache/sesi di perangkat (dipakai saat logout).
+function clearAllCaches() {
+  try { localStorage.clear(); } catch { /* abaikan */ }
+  try { sessionStorage.clear(); } catch { /* abaikan */ }
+  try {
+    if (window.caches && caches.keys) {
+      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).catch(() => {});
+    }
+  } catch { /* abaikan */ }
+}
 function resetClientState() {
   currentUser = null;
   lessonCats = [];
@@ -59,13 +81,31 @@ function setAuth(token, email, mustChange = false) {
   if (email) localStorage.setItem('email', email);
   mustChangePassword = !!mustChange;
   localStorage.setItem('mustChange', mustChangePassword ? '1' : '0');
+  touchSession();
   updateUIForAuth();
 }
 function clearAuth() {
   authToken = null; currentUser = null; mustChangePassword = false;
-  localStorage.removeItem('token'); localStorage.removeItem('email'); localStorage.removeItem('mustChange');
+  clearAllCaches();
+  lastActivity = 0;
   resetClientState();
   updateUIForAuth();
+}
+// Logout manual: selalu minta konfirmasi + bersihkan cache.
+function doLogout() {
+  if (!confirm('Yakin mau logout? Sesi & cache di perangkat ini akan dibersihkan.')) return;
+  clearAuth();
+  showToast('Kamu sudah logout. Cache dibersihkan.');
+}
+// Auto-logout: cek tiap 30 detik, tendang bila idle 30 menit.
+setInterval(() => {
+  if (authToken && sessionExpired()) {
+    clearAuth();
+    showToast('Otomatis logout karena 30 menit tidak ada aktivitas.', 'error');
+  }
+}, 30000);
+for (const ev of ['click', 'keydown', 'touchstart', 'submit']) {
+  document.addEventListener(ev, () => { if (authToken) touchSession(); }, { passive: true });
 }
 function updateUIForAuth() {
   const isAuth = !!authToken;
@@ -597,7 +637,7 @@ $('#forgotToggle')?.addEventListener('click', () => showForgot(true));
 $('#forgotBack')?.addEventListener('click', () => showForgot(false));
 $('#forgotForm')?.addEventListener('submit', handleForgot);
 $('#changeForm')?.addEventListener('submit', handleChangePassword);
-$('#logoutBtn').addEventListener('click', () => { clearAuth(); showToast('Sudah logout'); });
+$('#logoutBtn').addEventListener('click', doLogout);
 $('#openModalBtn').addEventListener('click', () => openModal());
 $('#closeModal').addEventListener('click', closeModal);
 $('#cancelModal').addEventListener('click', closeModal);
@@ -610,11 +650,21 @@ $('#vocabModal').addEventListener('click', (e) => { if (e.target === $('#vocabMo
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
 if (authToken) {
-  mustChangePassword = localStorage.getItem('mustChange') === '1';
-  apiRequest('/auth/me').then((d) => {
-    localStorage.setItem('email', d.user.email);
-    mustChangePassword = !!d.user.mustChangePassword;
-    localStorage.setItem('mustChange', mustChangePassword ? '1' : '0');
-    updateUIForAuth();
-  }).catch(() => clearAuth());
+  // Sesi yang idle > 30 menit (mis. tab dibiarkan/ditutup lama) langsung dibuang saat dibuka lagi.
+  try {
+    const stored = parseInt(localStorage.getItem('lastActive') || '0', 10);
+    if (stored) lastActivity = stored;
+  } catch { /* abaikan */ }
+  if (sessionExpired()) {
+    clearAuth();
+    showToast('Sesi berakhir otomatis (30 menit tidak aktif). Silakan login lagi.', 'error');
+  } else {
+    mustChangePassword = localStorage.getItem('mustChange') === '1';
+    apiRequest('/auth/me').then((d) => {
+      localStorage.setItem('email', d.user.email);
+      mustChangePassword = !!d.user.mustChangePassword;
+      localStorage.setItem('mustChange', mustChangePassword ? '1' : '0');
+      updateUIForAuth();
+    }).catch(() => clearAuth());
+  }
 } else updateUIForAuth();
